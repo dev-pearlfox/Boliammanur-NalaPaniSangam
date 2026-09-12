@@ -1,0 +1,1327 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
+
+/* Custom display face for the page header titles only (site-wide) — not
+   applied to body text, which stays on Poppins. */
+@font-face {
+  font-family: 'Poliyammanur Tamil Display';
+  src: url('fonts/Poliyammanur-Tamil-Display.ttf') format('truetype');
+  font-weight: 400 900; /* variable-range fallback in case the file has multiple weights baked in; browsers just pick the closest match if it's a single static weight */
+  font-display: swap;
+}
+
+:root {
+  --bg: #fff8f1;
+  --surface: #ffffff;
+  --surface-2: #fff2e4;
+  --text: #2a1a10;
+  --muted: #8a6f5c;
+  --border: #f2ddc7;
+  --accent: #ea580c;
+  --accent-2: #dc2626;
+  --accent-soft: #ffe8d4;
+  --accent-text: #ffffff;
+  --credit: #15803d;
+  --expense: #b91c1c;
+  --radius: 16px;
+  --shadow: 0 1px 2px rgba(120, 53, 15, 0.06), 0 12px 28px -10px rgba(234, 88, 12, 0.28);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; color-scheme: light; overflow-anchor: none; }
+
+input[type="number"] { -moz-appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+body {
+  margin: 0;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  overflow-x: hidden;
+  /* overflow-anchor:none on the individual shrinking elements (header etc.)
+     wasn't enough — the browser's scroll anchoring picks its "anchor node"
+     from anywhere in the scrollport, not necessarily the element that's
+     actually changing size, so it kept compensating for the members.html
+     scroll-compact shrink by silently reducing scrollY to match (confirmed
+     by logging scrollY alongside body.scrollHeight — they fell in
+     lockstep). Disabling it here, on the actual scroll container, is what's
+     needed for that animation to be intentional rather than fought. */
+  overflow-anchor: none;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 30px 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(120deg, #fb923c, #ea580c 55%, #b91c1c);
+  box-shadow: 0 6px 20px -8px rgba(234, 88, 12, 0.55);
+  transition: padding 0.2s ease;
+  /* Without this, the browser's scroll anchoring "compensates" for this
+     element shrinking by silently reducing scrollY to match — which drops
+     it below the is-scrolled threshold, un-triggers the shrink, and the
+     element snaps back to full size while scroll position stays stuck near
+     0. Confirmed by logging scrollY alongside the shrink: they fell in
+     lockstep until scrollY bottomed out. This animation is intentional, not
+     an accidental content-shift the browser needs to protect against. */
+  overflow-anchor: none;
+}
+/* index.html only (.header-logo-main marks its header, same scoping
+   technique as the is-scrolled override below) — no left/right padding,
+   top/bottom 30px unchanged, by explicit request. */
+header:has(.header-logo-main) { padding-left: 0; padding-right: 0; }
+
+/* Shared by index.html and members.html — each page's own JS toggles
+   body.is-scrolled once the page is scrolled a bit, shrinking the pinned
+   header/pills/table-header stack so more of the sheet is visible while
+   browsing. 30px vertical padding is a fixed value regardless of how many
+   lines the title wraps to — the banner's total height isn't set directly
+   anywhere, it's just padding + content, so it naturally grows to fit 2-3
+   wrapped lines on a narrow screen without needing separate rules per line
+   count (h1's own negative margin-bottom, computed live in JS from its
+   actual rendered height, already accounts for however tall the title
+   ends up being — see syncHeaderTitleCollapse in shared.js). */
+body.is-scrolled header { padding: 30px 16px; }
+/* index.html only — its header has a logo image (.header-logo-main;
+   members.html's header is text-only), used here to scope this override
+   without needing a body/page-level class. Tighter vertical padding once
+   scrolled than the shared 30px above, by explicit request — independent
+   of the title's own height-driven shrink (h1's transform:scale() +
+   negative margin-bottom above), which still applies on top of this. */
+body.is-scrolled header:has(.header-logo-main) { padding: 5px 0; }
+/* HEART LOGIC — do not change without asking (transform, not font-size).
+   Deliberately NOT font-size here — shrinking font-size continuously changes
+   how many words fit per line, and the exact moment the title's text
+   re-wraps from 2 lines to 1 is a discrete layout event (not a continuous
+   one), so it can't be smoothed by a transition — it snaps, no matter how
+   short the duration. Measured this directly: frame-by-frame height deltas
+   were a steady ~5-10px/frame until one single frame dropped ~59px, then
+   resumed smooth. transform:scale() shrinks the already-laid-out text
+   visually instead (its font-size, and therefore its line-wrapping, never
+   changes) — pure compositor work, so it's smooth by construction — and
+   --header-h1-margin-collapse (set in members.js from a one-time real
+   measurement of the title's rendered height) pulls the freed-up space
+   closed to actually shrink the header, not just the text inside it. */
+body.is-scrolled header h1 {
+  transform: scale(0.6);
+  margin-bottom: var(--header-h1-margin-collapse, 0px);
+}
+
+header h1 {
+  margin: 0 0 4px;
+  font-family: 'Poliyammanur Tamil Display', 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 2.3rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.15);
+  transform-origin: top center;
+  transition: transform 0.2s ease, margin-bottom 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* HEART LOGIC — do not change without asking (one shared sticky container).
+   members.html only — header, the type-filter pills, and the spreadsheet's
+   own column-title/filter row all need to scroll-pin and shrink together as
+   one visual unit (see body.is-scrolled rules below). Giving them one shared
+   sticky container instead of each being independently sticky (with the
+   pills bar's/table header's own `top` computed via JS from the elements
+   above them) avoids a real, measured two-stage stutter: a plain CSS class
+   change on one piece started shrinking at t=0, but a sibling's position
+   only updated once JS re-measured — often a whole transition-duration
+   later — so it sat frozen while its neighbor shrank, then snapped into
+   place. Inside one sticky wrapper, everything below the first child is
+   back in normal flow, always correctly adjacent with zero timing
+   dependency and zero per-frame JS cost, regardless of page size. */
+.sticky-top-stack {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  overflow-anchor: none;
+}
+.sticky-top-stack header { position: static; }
+/* <main>'s own top padding existed to space it from the sticky header —
+   redundant now that the header (and everything meant to sit flush below
+   it) lives inside .sticky-top-stack instead, ending exactly where <main>
+   should begin. */
+.sticky-top-stack + main { padding-top: 0; }
+
+/* HEART LOGIC — do not change without asking (.sticky-top-inner shares
+   <main>'s exact container mechanism, not a lookalike).
+   Wraps the pills bar + table header (not <header> itself, which stays
+   full-bleed edge-to-edge) using the exact same max-width/margin/padding
+   numbers as <main> below it — not just similar values, the same
+   mechanism — so the pills bar and table header are structurally
+   guaranteed to line up with .members-table-card, rather than each
+   computing its own separate centering math that only coincidentally
+   lands on the same numbers. An earlier version had .members-thead-wrap
+   compute its own max-width via calc()/min() directly; that measured
+   correctly in every automated check (multiple browser engines, many
+   widths) but still intermittently rendered flush against the left edge
+   on a real device, fixed by a reload — sharing one container instead of
+   keeping two independent calculations in sync removes that failure mode
+   entirely rather than chasing it. */
+.sticky-top-inner {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+@media (max-width: 900px) {
+  .sticky-top-inner { padding: 0 12px; }
+}
+
+.header-logo { height: 2.4em; width: auto; flex-shrink: 0; margin: -0.55em 0; }
+/* index.html's main app header — same logo as the password gate (already
+   has the full name baked in), sized to fill the header banner instead of
+   sitting as a small icon next to separate heading text. */
+.header-logo-main { height: 90px; width: auto; max-width: 100%; }
+/* Separate containers for the logo and title text, by explicit request —
+   each is its own flex item inside header h1 (already display:flex), so
+   they can be independently targeted/adjusted without touching the other. */
+.header-logo-container {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.header-title-text {
+  display: inline-block;
+}
+
+header p { margin: 0; color: rgba(255,255,255,0.85); font-size: 0.9rem; }
+
+.header-link-btn {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease;
+}
+
+.header-link-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+@media (max-width: 600px) {
+  .header-link-btn { position: static; display: inline-block; transform: none; margin-bottom: 10px; }
+}
+
+main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 28px 16px 90px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+}
+
+.totals-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 25;
+  height: 46px;
+  background: linear-gradient(120deg, #fb923c, #ea580c 55%, #b91c1c);
+  box-shadow: 0 -6px 20px -8px rgba(234, 88, 12, 0.55);
+}
+
+/* Moved out of <header> — the banner's own columns (see .totals-track) only
+   start at சந்தா (col 5), so the space to their left is otherwise empty.
+   Specificity here beats .header-link-btn's own mobile rule (position:static)
+   so this stays positioned at every screen width. left:16px here is only a
+   fallback before JS's first paint — alignTotalsBanner() (app.js) sets it
+   dynamically to the S.No. column's actual on-screen left edge instead, by
+   explicit request: pinned to the SPREADSHEET's own left edge, so it moves
+   left/right in sync with .sheet-tbody-wrap's horizontal scroll rather than
+   staying glued to the viewport's edge regardless of scroll position. */
+.totals-banner .header-link-btn {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translateY(-50%);
+  margin: 0;
+  z-index: 26;
+}
+
+@media (max-width: 600px) {
+  .totals-banner .header-link-btn { font-size: 0.75rem; padding: 6px 12px; }
+}
+
+/* members.html only — its footer banner has no .totals-track (no ledger
+   numbers to leave room for, unlike the main Ledger Sheet page that shares
+   this same .totals-banner markup), so the back button can sit centered
+   across the whole bar instead of pinned to the left edge. Scoped to this
+   extra class rather than changing .totals-banner .header-link-btn itself,
+   since that rule's left:16px is deliberately left-anchored specifically to
+   leave room for the Ledger Sheet's totals-track columns. */
+.totals-banner-simple .header-link-btn {
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.totals-track { position: relative; width: 100%; height: 100%; }
+
+.totals-col {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.totals-col-auto {
+  width: auto !important;
+  white-space: nowrap;
+  justify-content: flex-start;
+}
+
+.totals-col::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.totals-col:last-child::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.totals-value { color: #fff; font-size: 1.05rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.totals-grand { color: #ffe8d4; }
+
+.totals-shine {
+  display: inline-block;
+  animation: totals-shine-pulse 3.5s ease-in-out infinite;
+}
+
+@keyframes totals-shine-pulse {
+  0%, 50%, 100% {
+    text-shadow: none;
+    transform: scale(1);
+  }
+  65% {
+    color: #fff;
+    text-shadow: 0 0 8px #fff, 0 0 20px #ffe8d4, 0 0 34px #ffe8d4;
+    transform: scale(1.08);
+  }
+}
+
+@media (max-width: 600px) {
+  .totals-banner { height: 38px; }
+  .totals-col { padding: 0 4px; }
+  .totals-value { font-size: 0.8rem; }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px;
+}
+
+.card h2 { margin: 0 0 14px; font-size: 1.05rem; font-weight: 700; color: #9a3412; }
+
+/* Was independently position:sticky with top:var(--header-height) — now a
+   plain normal-flow child of .sticky-top-inner (see .sticky-top-stack's own
+   HEART LOGIC comment), so it needs no position/top of its own; the shared
+   stack's own background (var(--bg) on .sticky-top-stack) is what keeps
+   scrolled-past table rows from showing through, same as the rest of the
+   stack's children. */
+/* HEART LOGIC — do not change without asking (outer #sheet-title never
+   transforms/resizes; .sheet-title-inner below is the part that scales).
+   An earlier version put transform:scale() directly on #sheet-title
+   itself, sized to min(1252px,100%)/0.7 so the scaled-down result would
+   still visually fill the available width — that part worked, but it
+   also meant #sheet-title's own width no longer matched its siblings'
+   plain 1252px, so its margin:auto centering (below) computed a DIFFERENT
+   offset than .sheet-filter-card/.sheet-thead-wrap/.sheet-table-card get,
+   and the title's left edge drifted away from the spreadsheet's — visible
+   specifically on desktop once scrolled, confirmed by direct measurement
+   (margin-left computed to 0 instead of matching the siblings' ~74px,
+   because a box wider than its container can't be auto-centered normally).
+   Keeping #sheet-title itself fixed at plain width:1252px/max-width:100%,
+   identical to its siblings, guarantees its left edge is ALWAYS pixel-
+   identical to theirs, in every state, on every screen width — no
+   coincidence of matching numbers to maintain, structurally guaranteed
+   the same way .sticky-top-inner guarantees it for the others. */
+#sheet-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #c2410c;
+  padding: 4px 0 4px 5px;
+  margin: 12px auto 0;
+  width: 1252px;
+  max-width: 100%;
+  letter-spacing: -0.01em;
+  transition: margin-top 0.2s ease, margin-bottom 0.2s ease;
+}
+body.is-scrolled #sheet-title {
+  margin-top: 0;
+  margin-bottom: var(--sheet-title-margin-collapse, 0px);
+}
+/* Same transform:scale() treatment as header h1/.sheet-filter-card (see
+   their own HEART LOGIC comments) — not font-size, since this title's text
+   length varies (different function names) and could wrap, and animating
+   font-size on wrapping text causes a discrete, unsmoothable jump exactly
+   when it collapses from 2 lines to 1. SCALE here must match
+   syncSheetTitleCollapse's own constant in app.js. */
+.sheet-title-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  /* top left, not top center — unlike header h1/.sheet-filter-card, this
+     title is left-aligned, not centered; scaling from center would shift
+     its left edge sideways as it shrinks. */
+  transform-origin: top left;
+  transition: transform 0.2s ease;
+}
+body.is-scrolled .sheet-title-inner {
+  transform: scale(0.7);
+  /* transform:scale(0.7) shrinks what's RENDERED, but the box still
+     reserves its full pre-scale width in the layout — leaving real,
+     unused visual space to the right of the scaled content that the
+     overflow-x:auto scroll/fade below never accounts for (scrollWidth/
+     clientWidth are both measured in the pre-scale coordinate system,
+     unaffected by this element's own transform), so content that would
+     actually fit in that wasted space got faded/hidden instead. 100%/0.7
+     — relative to #sheet-title above, which (unlike this element) never
+     moves or resizes — makes this exactly wide enough that scaling by 0.7
+     lands the visible result flush with #sheet-title's own right edge,
+     not short of it, without disturbing #sheet-title's own position. */
+  width: calc(100% / 0.7);
+}
+/* Title+year stay on one row; the உறுப்பினர்கள் button can drop to its
+   own row below once compact if there's no room for both, by explicit
+   request — flex-wrap:wrap above is the base rule's own value, un-
+   overridden (an earlier version forced nowrap on the whole row, keeping
+   the button stuck alongside the title always). The title text itself
+   still never wraps mid-sentence — see the span rule below, which is
+   where nowrap + the horizontal swipe/scroll + fade-mask fallback live,
+   scoped to just the text instead of the whole row, for the rare case a
+   function name alone is too long for one line even with the button out
+   of the way. */
+body.is-scrolled .sheet-title-inner > span {
+  white-space: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+body.is-scrolled .sheet-title-inner > span::-webkit-scrollbar { display: none; }
+body.is-scrolled .sheet-title-inner > span.has-overflow {
+  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+}
+
+.members-toggle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--accent-soft);
+  color: var(--accent);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.members-toggle:hover { background: var(--accent); color: #fff; }
+
+.members-toggle.active {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 16px -4px rgba(234,88,12,0.55);
+}
+
+form { display: flex; flex-direction: column; gap: 10px; }
+
+label { font-size: 0.85rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+
+input, select, textarea {
+  font: inherit;
+  font-size: 16px;
+  padding: 11px 12px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+button {
+  font: inherit;
+  font-weight: 700;
+  padding: 12px 18px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: var(--accent-text);
+  cursor: pointer;
+  box-shadow: 0 8px 18px -6px rgba(234,88,12,0.5);
+  transition: transform 0.12s ease, opacity 0.15s ease;
+}
+
+button:hover { opacity: 0.94; transform: translateY(-1px); }
+button:active { transform: translateY(0); }
+button.secondary { background: transparent; border: 1px solid var(--border); color: var(--text); box-shadow: none; }
+
+.status { font-size: 0.85rem; min-height: 1.2em; }
+.status.error { color: var(--expense); }
+.status.ok { color: var(--credit); }
+
+/* contain:layout stops this element's (possibly much wider, horizontally
+   scrolling) content from counting toward ancestors' scrollWidth — without
+   it, overflow-x:auto visually clips fine but <html>'s true content width
+   still leaks through, which real mobile browsers use to decide the whole
+   page needs auto-zooming out to fit. That silently breaks every
+   position:sticky/fixed element's visual pinning on phones (not
+   reproducible in desktop devtools/emulation, which don't have that
+   auto-zoom heuristic) even though nothing was actually scrollable. Applies
+   to both the main Ledger Sheet and the members table. */
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; contain: layout; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 4px; }
+table.wide { min-width: 480px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; }
+.amt-credit { color: var(--credit); font-weight: 600; }
+.amt-expense { color: var(--expense); font-weight: 600; }
+
+#gate {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: linear-gradient(160deg, #fb923c, #ea580c 45%, #7c2d12);
+}
+
+#gate .card { width: 100%; max-width: 460px; text-align: center; }
+.gate-logo { width: 400px; max-width: 100%; height: auto; display: block; margin: 0 auto 12px; }
+/* #gate-status is a <p>, which carries a default browser margin — visible
+   as extra space below the Unlock button even while the status text is
+   empty (min-height:1.2em above already reserves room for the message
+   itself, so this margin was pure excess, not needed for the no-layout-jump
+   behavior that min-height exists for). */
+#gate .status { margin: 0; }
+
+.hidden { display: none !important; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Tablet ---------- */
+@media (max-width: 900px) {
+  main { padding: 22px 12px 84px; }
+  .card { padding: 16px; }
+  table.sheet td input { padding: 8px 6px; font-size: 0.9rem; }
+  table.sheet thead th { padding: 10px 6px; font-size: 0.8rem; }
+  table.sheet thead th:nth-child(2), table.sheet thead th:nth-child(n+5):nth-child(-n+9) { font-size: 0.95rem; }
+  .santha-cell { padding: 0 6px; gap: 5px; }
+  #sheet-title { font-size: 1.5rem; }
+}
+
+/* Phones: 10 columns can't stay legible at any width squeeze, so this table
+   alone gets a minimum width and scrolls horizontally within its own card
+   (table-wrap already has overflow-x:auto) — the rest of the page doesn't
+   scroll sideways, just this one element. */
+@media (max-width: 600px) {
+  table.sheet { min-width: 720px; }
+  .santha-cell { gap: 5px; min-height: 44px; }
+  .santha-amount { font-size: 0.9rem; }
+  .totals-shine { font-size: 0.72rem; }
+  main { padding-bottom: 70px; }
+}
+
+@media (max-width: 480px) {
+  header h1 { font-size: 1.8rem; }
+  /* index.html only (members.html's header has no logo image) — at 140px
+     fixed height, the logo + long title together are wider than a phone
+     viewport; header h1's flex row doesn't wrap or shrink on its own, so
+     the combined content overflowed centered (bleeding off both left and
+     right edges), forcing real horizontal scroll on the whole page.
+     Bumped from 45px to 75px, by explicit request — the title wraps to
+     two lines at this width, and 45px read as visibly small/undersized
+     next to that taller two-line block; this only touches the rest
+     (expand) state's mobile size, scoped by this same media query, so
+     desktop's own 90px (base rule above) is untouched. The shrunk/
+     scrolled state's mobile logo size isn't set independently — it's
+     derived from this value via body.is-scrolled header h1's own
+     transform:scale(0.6) — so it gets proportionally bigger too as a
+     side effect of this change, not a separate decision. */
+  .header-logo-main { height: 75px; }
+  main { padding: 18px 12px 52px; gap: 16px; }
+  .card { padding: 18px; }
+  .totals-shine { font-size: 0.62rem; }
+  .totals-banner { height: 34px; }
+}
+
+/* index.html only — narrower than the 480px breakpoint above. The title
+   wraps to THREE lines at this width (confirmed by measurement: ~129.6px
+   tall) instead of two, making the 480px breakpoint's 75px logo look
+   small again by the same comparison that motivated bumping it from 45px
+   there — bumped further here to better match. Also nudges the logo off
+   the screen's left edge: header's own left/right padding is 0 at every
+   width (see header:has(.header-logo-main) above, by earlier explicit
+   request), which reads fine for the centered title text but left the
+   logo flush against the edge with no breathing room — margin-left here
+   (not header padding) keeps that padding:0 decision intact for
+   everything else and only nudges the logo specifically.
+   height:80px/margin-left:8px, not a bigger jump — header h1 is
+   flex-wrap:nowrap with justify-content:center and no explicit width on
+   the title text, so it's the two of them sharing one fixed budget:
+   images don't shrink below their intrinsic size in a flex row (the
+   min-width:auto quirk), so past a certain logo size there's no longer
+   enough left for the Tamil title's own minimum practical wrap width,
+   and centering an overflowing nowrap row bleeds off BOTH edges at once
+   (confirmed directly — a 105px attempt put the logo at a NEGATIVE left
+   position, off-screen, not just tight). Checked this exact combination
+   across the realistic device range (360–480px, several logo/margin
+   pairs) — this is the largest size with zero overflow at every one of
+   them, including 360px specifically (a real, common Android width, not
+   just a legacy outlier), rather than one that merely looked fine at the
+   two widths first tried. */
+@media (max-width: 400px) {
+  .header-logo-main { height: 80px; }
+  .header-logo-container { margin-left: 8px; }
+}
+
+/* ---------- Ledger spreadsheet ---------- */
+
+/* index.html only — same architecture as members.html's
+   .members-thead-wrap/.members-tbody-wrap/.members-table-card (see that
+   file's HEART LOGIC index for the full reasoning): header + pills +
+   #sheet-title + this thead all share .sticky-top-stack/.sticky-top-inner
+   instead of each independently computing a sticky offset from
+   --header-height, and the table itself is now part of the page's own
+   scroll instead of its own boxed max-height:74vh/overflow-y:auto area —
+   that internal scroll box was incompatible with the shared-stack shrink
+   approach (the "scroll" that should trigger the shrink is the PAGE's
+   scroll, not a scroll happening inside a small fixed-height box).
+   Unlike members.html's table, this one already stretches to fill its
+   container (table.sheet's own width:100% + this table's percentage
+   columns, not literal fixed px) — so .sheet-thead-wrap and
+   .sheet-table-card below don't need explicit width-matching numbers, just
+   width:auto within the same max-width:1320px/margin:auto/padding
+   container (.sticky-top-inner / <main>) that guarantees alignment. */
+/* width explicitly matches the table's own fixed 1250px + 2px border
+   footprint (1252px), same as .sheet-table-card and .sheet-filter-card
+   below — without this, all three just filled their shared container
+   (up to 1288px wide), leaving each one's border/shadow/rounded-corner box
+   visibly wider than the actual table/pills content centered inside it, on
+   any screen wider than 1252px. Same fix members.html needed for
+   .members-thead-wrap/.members-filter-card. */
+.sheet-thead-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 14px 14px 0 0;
+  box-shadow: var(--shadow);
+  contain: layout;
+  overflow-anchor: none;
+  width: 1252px;
+  max-width: 100%;
+  margin: 22px auto 0;
+  transition: margin-top 0.2s ease;
+}
+body.is-scrolled .sheet-thead-wrap { margin-top: 0; }
+
+.sheet-tbody-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border);
+  border-radius: 0 0 14px 14px;
+  box-shadow: var(--shadow);
+  contain: layout;
+}
+
+/* No card framing around the ledger sheet's own card wrapper — its border/
+   shadow/rounding now lives directly on .sheet-thead-wrap/.sheet-tbody-wrap
+   instead (same "no container" treatment as members.html's spreadsheet).
+   width/margin match .sheet-thead-wrap's own footprint — see its comment
+   above. */
+.sheet-table-card {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  width: 1252px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* Keeps its .card.compact framing (unlike .sheet-thead-wrap/
+   .sheet-table-card above) — width still explicitly matches the table's
+   own 1252px footprint (see .sheet-thead-wrap's comment above for why),
+   just with the card's usual background/border/shadow/padding restored.
+   No transform here (unlike .members-filter-card) — transform:scale()
+   shrinks an element's rendered width along with everything else, which
+   would pull this card's visible width away from the table's below it the
+   moment it's scrolled. The shrink instead happens on .pills-inline (its
+   only real content, below) while this outer box's own width/padding stay
+   fixed, so its box keeps matching the spreadsheet's width in every state. */
+.sheet-filter-card {
+  width: 1252px;
+  max-width: 100%;
+  margin: 22px auto 0;
+  transition: margin-top 0.2s ease, padding 0.2s ease;
+}
+body.is-scrolled .sheet-filter-card { margin-top: 0; padding: 10px 0; }
+
+/* Same transform:scale() technique as .members-filter-card (see its own
+   HEART LOGIC comment) — shrinks as one compositor-only unit instead of
+   animating each pill's own padding/font-size — just scoped to this inner
+   wrapper instead of .sheet-filter-card itself (see that rule's own
+   comment for why). top left, not top center, since its content
+   (வருடம்/விழா rows) is left-aligned, not centered — EXCEPT once scrolled
+   (see body.is-scrolled override below), where the rows switch to
+   centered and the scale origin switches with them; scaling centered
+   content from a left origin would pull it visibly off-center (the right
+   side shrinks toward the left corner more than the left side does). */
+.pills-inline {
+  transform-origin: top left;
+  transition: transform 0.2s ease, margin-bottom 0.2s ease;
+}
+body.is-scrolled .pills-inline {
+  transform: scale(0.85);
+  transform-origin: top center;
+  margin-bottom: var(--sheet-filter-card-margin-collapse, 0px);
+}
+/* Rows center horizontally once compact, by explicit request — matches
+   removing .sheet-filter-card's left/right padding above. */
+body.is-scrolled .pill-line { justify-content: center; }
+/* வருடம்:/விழா: labels — dropped once compact, by explicit request; the
+   pill buttons themselves already show the selected value, so the label
+   is redundant once space is at a premium. */
+body.is-scrolled .pill-label { display: none; }
+
+/* margin-top:0 overrides the base table rule's 4px (see that rule's own
+   comment) — same fix already applied to table.members-table for the same
+   reason: .sheet-thead-wrap has no background of its own (transparent,
+   showing the page's own background through), so that 4px gap between
+   the wrapper's top edge and the table's actual top edge showed up as a
+   visible sliver of page background above the header cells' own gradient
+   — confirmed by direct measurement (a real 5px gap: 4px margin + 1px
+   wrapper border) before this fix. */
+table.sheet { width: 100%; table-layout: fixed; font-size: 1rem; font-variant-numeric: tabular-nums; margin-top: 0; }
+
+table.sheet thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: linear-gradient(90deg, #ffe8d4, #ffddb8);
+  border-bottom: 2px solid var(--border);
+  padding: 12px 10px;
+  font-size: 0.9rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: normal;
+  word-break: break-word;
+  color: #9a3412;
+  transition: padding 0.2s ease, font-size 0.2s ease;
+}
+
+table.sheet thead th:nth-child(2), table.sheet thead th:nth-child(n+5):nth-child(-n+9) { font-size: 1.05rem; }
+
+table.sheet td { border: 1px solid var(--border); padding: 0; vertical-align: middle; }
+table.sheet td:nth-child(1) { text-align: center; padding: 10px 8px; }
+/* HEART LOGIC — do not change without asking (explicit white, not
+   transparent, for members.html's sake).
+   Explicit rather than left transparent — members.html's table sits
+   directly on the page background now (no card wrapper behind it, see
+   .members-table-card above), which is a very faint cream (--bg), not true
+   white; explicit white here keeps the white/cream zebra contrast crisp
+   regardless of what's behind the table on any given page. */
+table.sheet tbody tr:nth-child(odd) td { background: var(--surface); }
+table.sheet tbody tr:nth-child(even) td { background: var(--surface-2); }
+table.sheet tbody tr:hover td { background: var(--accent-soft); }
+
+table.sheet td input {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  min-height: 48px;
+  padding: 10px 12px;
+  width: 100%;
+  text-align: right;
+  font-size: 1rem;
+}
+
+table.sheet td:nth-child(2) input, table.sheet td:nth-child(3) input, table.sheet td:nth-child(4) input, table.sheet td:nth-child(10) input { text-align: left; }
+table.sheet input.f-name[readonly] { cursor: default; }
+table.sheet input.f-name[readonly]:focus { outline: none; box-shadow: none; }
+table.sheet td:nth-child(1) input { text-align: center; padding-left: 8px; padding-right: 8px; }
+/* ---------- Ledger Sheet table widths — HEART LOGIC, do not change without
+   asking ----------
+   S.No. 60px / பெயர் 200px / Name 200px / Mobile Number 170px / சந்தா 100px /
+   அசல் 100px / வட்டி 100px / தொகை 100px / மொத்தம் 100px / குறிப்பு 120px
+   (= 1250px total.) Literal fixed pixel widths, identical on desktop/
+   tablet/mobile — same "no stretch" approach as members.html's table, and
+   for the same reason percentages were dropped here: table-layout:fixed
+   does NOT resolve a column's % against the table's own width when other
+   columns are literal px and the table's rendered width is constrained
+   (e.g. by min-width on a narrow screen) — it instead treats the percentage
+   values as relative WEIGHTS splitting whatever space is left after the
+   fixed-px columns, which on a phone (where little space was left) measured
+   as low as 13.7px for a 9% column — the actual money columns, unusably
+   narrow. Fixed px for every column sidesteps that resolution question
+   entirely. A responsive override for columns 1-4 used to exist at the
+   903px breakpoint above, but it never actually applied at any width (same
+   specificity, always beaten by this base rule's later position in the
+   file, same category of bug as .members-filter-card's own max-width
+   override once had) — removed rather than fixed, since fixed widths at
+   every screen size is what's wanted now anyway. On a screen narrower than
+   the table's total width, it scrolls horizontally within its own card,
+   same technique used by members.html. */
+table.sheet:not(.members-table) { width: 1250px; margin-left: auto; margin-right: auto; } /* centers it on the rare wide screen where the container (up to 1288px) is actually wider than the table itself */
+table.sheet th:nth-child(1), table.sheet td:nth-child(1) { width: 60px; }
+table.sheet th:nth-child(2), table.sheet td:nth-child(2) { width: 200px; }
+table.sheet th:nth-child(3), table.sheet td:nth-child(3) { width: 200px; }
+table.sheet th:nth-child(4), table.sheet td:nth-child(4) { width: 170px; }
+table.sheet th:nth-child(5), table.sheet td:nth-child(5) { width: 100px; }
+table.sheet th:nth-child(6), table.sheet td:nth-child(6) { width: 100px; }
+table.sheet th:nth-child(7), table.sheet td:nth-child(7) { width: 100px; }
+table.sheet th:nth-child(8), table.sheet td:nth-child(8) { width: 100px; }
+table.sheet th:nth-child(9), table.sheet td:nth-child(9) { width: 100px; }
+table.sheet th:nth-child(10), table.sheet td:nth-child(10) { width: 120px; }
+
+table.sheet td input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--bg); }
+
+table.sheet td.total-cell {
+  text-align: right;
+  padding: 10px 12px;
+  font-weight: 800;
+  color: #c2410c;
+  background: var(--accent-soft);
+}
+
+table.sheet input.uncertain { color: var(--expense); font-weight: 700; }
+
+table.sheet tr.row-saved td { background: rgba(21, 128, 61, 0.15); transition: background 1.2s ease; }
+
+@keyframes row-blink { 0%, 100% { background: transparent; } 50% { background: rgba(21, 128, 61, 0.35); } }
+table.sheet tr.row-blink td { animation: row-blink 0.35s ease-in-out 3; }
+
+table.sheet tfoot td { background: rgba(21, 128, 61, 0.1); }
+table.sheet tfoot td input:disabled { background: transparent; color: var(--muted); opacity: 0.55; cursor: not-allowed; }
+
+.new-type-picker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+.new-type-picker select { width: auto; min-width: 160px; }
+
+#new-member-no { color: #15803d; font-weight: 700; -moz-appearance: textfield; }
+#new-member-no::-webkit-inner-spin-button, #new-member-no::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ---------- சந்தா: admin-fixed price, member just checks/unchecks ---------- */
+
+.santha-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 0 12px;
+  min-height: 48px;
+}
+
+.santha-cell input[type="checkbox"] { width: 18px; height: 18px; min-height: auto; flex-shrink: 0; }
+
+.santha-amount {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+.santha-amount.faded { color: var(--muted); opacity: 0.45; font-weight: 400; }
+
+/* ---------- Year / function pills ---------- */
+
+.pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.pill-row:first-of-type { margin-top: 4px; }
+/* index.html's year/function rows, scrolled/compact state only, by
+   explicit request — expanded state keeps the plain wrap behavior above.
+   Same nowrap + horizontal swipe/scroll technique as members.html's
+   .members-filter-card .pill-row (see its own HEART LOGIC comment there
+   for the reasoning: wrapping splits a long pill onto its own line
+   unevenly on narrow screens). */
+body.is-scrolled .sheet-filter-card .pill-row {
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+body.is-scrolled .sheet-filter-card .pill-row::-webkit-scrollbar { display: none; }
+/* has-overflow set by syncPillRowOverflow (app.js) only when the row
+   actually has more content than fits — fades the trailing edge into a
+   "more content, scroll for it" cue instead of the last pill's rounded
+   shape getting sliced off flat at the card's edge. Scrolled state only,
+   same as the nowrap rule above — the JS sets/clears the class in both
+   states, but it's inert in the expanded state since no CSS here matches
+   without body.is-scrolled. */
+body.is-scrolled .sheet-filter-card .pill-row.has-overflow {
+  mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 28px), transparent 100%);
+}
+
+.pill {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 8px 16px;
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, transform 0.1s ease, padding 0.2s ease, min-height 0.2s ease, font-size 0.2s ease;
+}
+
+.pill:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+.pill.active {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 16px -4px rgba(234,88,12,0.55);
+}
+
+.hint { color: var(--muted); font-size: 0.8rem; margin: 8px 0 0; }
+
+.card.compact { padding: 16px 20px; display: flex; flex-direction: column; gap: 2px; }
+.card.compact h2 { margin: 0 0 8px; font-size: 0.95rem; }
+.card.compact .pill-row { margin-top: 0; gap: 6px; }
+.card.compact .pill { padding: 6px 14px; min-height: 30px; font-size: 0.82rem; }
+.card.compact .hint { margin-top: 6px; }
+.card.compact .status:empty { display: none; }
+
+.pills-inline { display: flex; flex-direction: column; gap: 10px; }
+.pill-divider { width: 100%; height: 1px; background: var(--border); }
+.pill-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pill-label { font-weight: 700; color: #9a3412; font-size: 0.95rem; white-space: nowrap; }
+
+/* ---------- Members page: per-cell lock/unlock ---------- */
+
+.cell-flex { display: flex; align-items: center; gap: 2px; }
+.cell-flex input { flex: 1; min-width: 0; }
+.cell-input:read-only { cursor: default; color: var(--muted); }
+.cell-input:read-only:focus,
+.cell-input:read-only:hover {
+  outline: none;
+  box-shadow: none;
+  border-color: transparent;
+  background: transparent;
+}
+.cell-input.unlocked { color: var(--text); background: var(--accent-soft); }
+
+.lock-btn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 8px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 6px;
+  line-height: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.lock-btn:hover { background: var(--accent-soft); }
+
+table.sheet thead tr.filter-row th,
+table.sheet thead tr.filter-row td {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  padding: 2px 6px;
+  transition: padding 0.2s ease;
+}
+
+.filter-input {
+  width: 100%;
+  min-height: 18px;
+  padding: 2px 8px;
+  font-size: 0.8rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text);
+  transition: padding 0.2s ease, min-height 0.2s ease, font-size 0.2s ease;
+}
+
+/* ---------- Members page table widths — HEART LOGIC, do not change without asking ----------
+   S.No. 70px / Roll No. 80px / பெயர் 248px / Name 248px / Mobile Number 200px / Type 130px / Avoid 80px
+   (= 1056px total, matching .members-thead-wrap's own 22px side padding +
+   1px side border exactly, so the table fills that frame with no leftover
+   gap on either side — the wrap's outer width below is 1056 + 44 + 2 =
+   1102px to fit it.)
+   Literal fixed pixel widths, identical on desktop/tablet/mobile — the table
+   does NOT stretch to fill its card (unlike table.sheet's default). On a
+   screen narrower than the table's total width, it scrolls horizontally
+   within its own card (table-wrap already supports this), same technique
+   used for the main Ledger Sheet on phones — nothing else on the page moves. */
+table.members-table { width: 1056px; margin-top: 0; }
+
+/* The header (column titles + filter inputs) is a separate mini table from
+   the data rows, pinned via position:sticky on this WRAPPING div rather than
+   per-cell. Reason: any ancestor with overflow-x:auto (needed for the
+   horizontal-scroll mobile fallback below) silently becomes the containing
+   block for position:sticky on its descendants — so a per-cell sticky header
+   nested inside the horizontally-scrolling box never tracks real page
+   scroll, only that box's own (nonexistent) internal scroll. Splitting the
+   header out from under that ancestor avoids the trap entirely. Its
+   horizontal scroll position is mirrored from the body by members.js so
+   columns still track left/right drags on narrow screens. */
+/* contain:layout on both wrappers (found by measuring, not guessing — see
+   commit notes) closes a real gap: overflow-x alone visually clips the
+   1010px-wide table fine, but doesn't stop its true width from still
+   counting toward the document root's scrollWidth. On real mobile browsers
+   (not reproducible in desktop devtools/emulation) that phantom width made
+   <html> report ~833px wide on a 390px phone, which is exactly the signal
+   mobile Chrome/Safari use to decide the WHOLE PAGE needs to auto-zoom-out
+   to "fit everything" — silently breaking every position:sticky/fixed
+   element's visual pinning even though nothing was actually scrollable.
+   contain:layout tells the browser this element's content can never affect
+   anything outside it, closing the leak at its source. */
+/* HEART LOGIC — do not change without asking (thead-wrap's position,
+   separation from tbody, and width-matching to .members-filter-card).
+   .members-thead-wrap now lives inside .sticky-top-stack (see members.html),
+   right after the pills bar, instead of inside .members-table-card — a plain
+   normal-flow child of an already-sticky ancestor needs no position/top of
+   its own, so its screen position tracks the stack natively with zero JS
+   measurement, however large the table body below it gets. It's still a
+   separate element from .members-tbody-wrap (not one shared table) because
+   any ancestor with overflow-x:auto (needed for the horizontal-scroll mobile
+   fallback below) silently becomes the containing block for position:sticky
+   on its descendants — a per-cell sticky header nested inside that
+   horizontally-scrolling box would only track the box's own (nonexistent)
+   internal scroll, never real page scroll. Its horizontal scroll position is
+   mirrored from the body by members.js so columns still track left/right
+   drags on narrow screens.
+   Matches .members-filter-card's own 1058px footprint (1056px table + 2px
+   border, no padding — see the "no container" note on .members-table-card
+   below) and centers within .sticky-top-inner the same way — the same
+   max-width:1320px/margin:auto/padding container <main> uses, so this is
+   structurally guaranteed to line up with .members-table-card below rather
+   than computing its own separate width math. On phones it shrinks below
+   1058px (max-width:100% of a narrower .sticky-top-inner), which is what
+   makes the table inside overflow and need the horizontal scroll-sync in
+   the first place. */
+.members-thead-wrap {
+  /* overflow:hidden (not just overflow-x) clips the header cells' own
+     square corners into this rounded shape — with border-collapse:collapse
+     (the table default), border-radius directly on a <th> renders
+     unreliably, so the corner-rounding happens here at the wrapper instead.
+     Still fine for the horizontal scrollLeft sync in members.js — hidden
+     still accepts a programmatic scrollLeft, it just has no visible
+     scrollbar/drag, same as overflow-x:hidden did. */
+  overflow: hidden;
+  border-radius: 14px 14px 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none; /* .members-tbody-wrap supplies its own top border instead — one single seam line, not a doubled-up pair */
+  box-shadow: var(--shadow); /* same shadow every .card on the page uses — box-shadow paints outside the border-box, unaffected by this element's own overflow:hidden */
+  contain: layout;
+  overflow-anchor: none;
+  width: 1058px; /* 1056px table + 2px border (1px each side) so the table still fits exactly, without the border clipping it */
+  max-width: 100%;
+  margin: 22px auto 0; /* top value is breathing room from the pills bar above; closes to 0 once scrolled, just like the pills bar's own margin does */
+  transition: margin-top 0.2s ease;
+}
+body.is-scrolled .members-thead-wrap { margin-top: 0; }
+
+/* contain:layout closes a real gap: overflow-x alone visually clips a
+   wide table fine, but doesn't stop its true width from still counting
+   toward the document root's scrollWidth. On real mobile browsers (not
+   reproducible in desktop devtools/emulation) that phantom width made
+   <html> report far wider than the actual phone screen, which is exactly
+   the signal mobile Chrome/Safari use to decide the WHOLE PAGE needs to
+   auto-zoom-out to "fit everything" — silently breaking every
+   position:sticky/fixed element's visual pinning even though nothing was
+   actually scrollable. contain:layout tells the browser this element's
+   content can never affect anything outside it, closing the leak at its
+   source. */
+.members-tbody-wrap {
+  overflow-x: auto; /* real user drag-scroll on narrow screens, unlike thead-wrap's hidden/JS-driven mirror — must stay auto, not hidden */
+  overflow-y: hidden; /* clips the last row's own square bottom corners into this rounded shape, same reasoning as .members-thead-wrap above */
+  -webkit-overflow-scrolling: touch;
+  contain: layout;
+  border-radius: 0 0 14px 14px;
+  border: 1px solid var(--border); /* top edge doubles as the one seam line between this and .members-thead-wrap above (which has no bottom border of its own) */
+  box-shadow: var(--shadow); /* same shadow every .card on the page uses */
+}
+
+/* HEART LOGIC — do not change without asking (no .card framing around the
+   spreadsheet, by explicit request).
+   No card framing (border/background/shadow/padding) around the spreadsheet
+   at all — it sits directly on the page background, just the table itself
+   with each cell supplying its own background color. Card hugs the table's
+   fixed width instead of stretching to the page's max width, then centers
+   itself horizontally — no empty space on either side. */
+.members-table-card {
+  align-self: center;
+  width: fit-content;
+  max-width: 100%;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+.members-table-card .status { margin-top: 12px; }
+
+/* No card framing (border/background/shadow/padding) — same "sits directly
+   on the page" treatment as the spreadsheet below it (see
+   .members-table-card). pill-row's own gap widens a bit (see further down)
+   for breathing room now that there's no card edge to imply spacing.
+
+   REVERT: restore width:1058px (was matching .members-thead-wrap's 1056px
+   table + 2px border) and background:var(--surface); border:1px solid
+   var(--border); border-radius:var(--radius); box-shadow:var(--shadow);
+   padding:16px 20px (the .card.compact defaults) to go back to the boxed
+   look. */
+.members-filter-card {
+  width: 1058px; /* always matches .members-thead-wrap's own width exactly, so the pill row's outer edges line up with the spreadsheet below it — the pill-row itself scrolls internally (see below) if its content doesn't fit at this width, rather than the card growing/shrinking to match content */
+  max-width: 100%; /* of .sticky-top-inner's already-padded content box (see above) */
+  margin: 28px auto 0; /* top value replicates <main>'s old header→pills gap, now that this card lives in .sticky-top-stack instead of <main> */
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  transform-origin: top center;
+  transition: transform 0.2s ease, margin-top 0.2s ease, margin-bottom 0.2s ease;
+}
+/* Design option 4 (segmented control, tried after option 1's plain pills,
+   option 2's underline tabs, and option 3's ghost pills) — the three
+   filters live inside ONE tight pill-shaped outline (not the big white
+   card — this wraps just the button row itself) with the active choice
+   shown as a solid block inside it, like an iOS segmented switcher. Reads
+   as one cohesive control instead of three separate buttons.
+   inline-flex (not the default flex, which stretches to the row's full
+   available width) so this outline hugs exactly the three buttons' own
+   width rather than spanning edge-to-edge.
+
+   REVERT to option 3 (ghost pills): see the previous version of this
+   block in conversation/git history.
+   REVERT to option 1 (plain pills as .pill already styles them, no
+   override needed here at all): delete this whole block, restore
+   .pill-row's gap to 12px below.
+   REVERT to the original boxed pills: also see .members-filter-card's own
+   revert note above (restores the card background/border/shadow/padding). */
+/* HEART LOGIC — do not change without asking (pill row never wraps).
+   flex-wrap:nowrap (overriding the base .pill-row's wrap) + overflow-x:auto
+   keeps this one continuous line at every width — on a phone too narrow to
+   fit all three labels, it becomes horizontally swipeable instead of
+   wrapping, which previously split the shared outline unevenly around one
+   filled pill on its own line and two bare labels on the next. Scrollbar
+   hidden since a swipe/drag gesture is the expected interaction here (same
+   idea as .members-thead-wrap's own hidden horizontal scroll), not a
+   traditional scrollable list. members.js scrolls the clicked pill to the
+   row's center on click for the same reason (see its own HEART LOGIC
+   comment there). */
+.members-filter-card .pill-row {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  margin-left: auto; /* centers the visible outline within .members-filter-card, which is now wider (1058px) than the outline itself needs to be */
+  margin-right: auto;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+.members-filter-card .pill-row::-webkit-scrollbar { display: none; }
+.members-filter-card .pill {
+  background: none;
+  border: none;
+  color: var(--muted);
+  box-shadow: none;
+  flex-shrink: 0; /* keeps each label at its natural width instead of getting squeezed to fit — the row scrolls instead */
+}
+.members-filter-card .pill:hover { color: var(--accent); }
+.members-filter-card .pill.active {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #fff;
+  box-shadow: 0 4px 10px -4px rgba(234, 88, 12, 0.45);
+}
+
+/* margin-top eases down at the same breakpoints/rhythm main's own top
+   padding used to. */
+@media (max-width: 900px) {
+  .members-filter-card { margin-top: 22px; }
+}
+@media (max-width: 480px) {
+  .members-filter-card { margin-top: 18px; }
+}
+
+/* HEART LOGIC — do not change without asking (transform, not per-pill
+   padding/font-size — same reasoning as header h1 above).
+   Scaling the whole card visually (rather than animating each pill's own
+   padding/font-size, ~10+ separate layout-triggering properties every
+   frame) means everything inside — padding, buttons, text — rides along
+   unscaled and un-animated, at zero extra layout cost. transform doesn't
+   shrink the space the card reserves in the page, so a negative
+   margin-bottom (computed in members.js from the card's actual rendered
+   height, which transform doesn't affect) pulls that freed space closed. */
+body.is-scrolled .members-filter-card {
+  transform: scale(0.72);
+  margin-top: 0;
+  margin-bottom: var(--pills-card-margin-collapse, 0px);
+}
+table.members-table th:nth-child(1), table.members-table td:nth-child(1) { width: 70px; }
+table.members-table th:nth-child(2), table.members-table td:nth-child(2) { width: 80px; }
+table.members-table th:nth-child(3), table.members-table td:nth-child(3) { width: 248px; }
+table.members-table th:nth-child(4), table.members-table td:nth-child(4) { width: 248px; }
+table.members-table th:nth-child(5), table.members-table td:nth-child(5) { width: 200px; }
+table.members-table th:nth-child(6), table.members-table td:nth-child(6) { width: 130px; }
+table.members-table th:nth-child(7), table.members-table td:nth-child(7) { width: 80px; }
+table.members-table td:nth-child(2) { text-align: center; }
+table.members-table td:nth-child(6) { text-align: center; }
+table.members-table td:nth-child(7) { text-align: center; }
+table.members-table thead th:nth-child(3) { font-weight: 800; }
+table.members-table thead th { padding: 4px 3px; }
+
+table.members-table tr.row-avoided { opacity: 0.45; }
+
+table.members-table tfoot td { background: rgba(21, 128, 61, 0.1); }
+table.members-table tfoot td input:disabled,
+table.members-table tfoot td select:disabled { background: transparent; color: var(--muted); opacity: 0.55; cursor: not-allowed; }
+.new-member-num { text-align: center; color: #15803d; font-weight: 700; }
+
+/* Custom-drawn (not the native tick) since accent-color can only recolor the
+   browser's own checkmark glyph, not swap it for an X. */
+table.sheet td input.avoid-check {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 25px;
+  height: 25px;
+  min-height: auto;
+  padding: 0;
+  margin: 0;
+  border-radius: 2px;
+  vertical-align: middle;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+}
+
+table.sheet td input.avoid-check:checked {
+  background-color: var(--expense);
+  border-color: var(--expense);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5L19 19M19 5L5 19' stroke='white' stroke-width='3.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 65%;
+}
+
+/* Members page header font size — HEART LOGIC, do not change without asking:
+   1.05rem (16.8px) for every column, independent of the main Ledger Sheet's
+   own header sizing (which some columns here previously inherited by accident). */
+table.members-table thead th:nth-child(1),
+table.members-table thead th:nth-child(2),
+table.members-table thead th:nth-child(3),
+table.members-table thead th:nth-child(4),
+table.members-table thead th:nth-child(5),
+table.members-table thead th:nth-child(6) {
+  font-size: 1.05rem;
+}
+
+table.members-table thead th { padding: 10px; transition: padding 0.2s ease, font-size 0.2s ease; }
+
+/* Scroll-compact state (see body.is-scrolled header/.members-filter-card
+   above) — shrinks the column-title row and the Filter inputs row too, once
+   the user is actually scrolling. Doesn't touch their resting-state sizes
+   (the 1.05rem heart logic above), only what applies while scrolled. */
+body.is-scrolled table.members-table thead th { padding: 3px 6px; }
+body.is-scrolled table.members-table thead th:nth-child(1),
+body.is-scrolled table.members-table thead th:nth-child(2),
+body.is-scrolled table.members-table thead th:nth-child(3),
+body.is-scrolled table.members-table thead th:nth-child(4),
+body.is-scrolled table.members-table thead th:nth-child(5),
+body.is-scrolled table.members-table thead th:nth-child(6),
+body.is-scrolled table.members-table thead th:nth-child(7) {
+  font-size: 0.8rem;
+}
+body.is-scrolled table.sheet thead tr.filter-row th,
+body.is-scrolled table.sheet thead tr.filter-row td {
+  padding: 1px 6px;
+}
+body.is-scrolled .filter-input { min-height: 14px; padding: 1px 6px; font-size: 0.72rem; }
+
+/* index.html's own Ledger Sheet column-title row — same shrink treatment
+   as table.members-table's above, just missed when the scroll-compact
+   architecture was first ported to this page (the filter-row rule above,
+   and .filter-input, already applied here since those are shared
+   table.sheet selectors, not members-table-specific — this one wasn't). */
+body.is-scrolled table.sheet:not(.members-table) thead th { padding: 3px 6px; font-size: 0.78rem; }

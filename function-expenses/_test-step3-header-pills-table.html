@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Step 3: Header + pills + spreadsheet — scroll smoothness test</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  /* Test-only: extra scroll room at the very bottom, past the real table
+     data, in case there aren't many members yet to scroll through. */
+  #scroll-spacer { height: 800px; }
+
+  /* --- Prototype fix v2 (test file only, not yet applied to the real site) ---
+     v1 scaled the button row while the CARD around it still animated its
+     own padding via layout (still 1 layout-triggering property). Nesting a
+     transform on the row inside a card that ALSO transforms would compound
+     (multiply) their scales unpredictably, so this version puts the ENTIRE
+     visual shrink on the card alone — one transform, one element, and
+     everything inside (padding, buttons, text) just rides along unscaled
+     and un-animated, at zero extra layout cost. */
+  /* Values here must match .card.compact .pill's own resting values (NOT
+     the more generic base .pill rule) — .members-filter-card carries both
+     "card" and "compact" classes, so that's the one actually governing its
+     buttons' true resting size. Using the wrong (larger, base .pill)
+     values here was quietly forcing the buttons BIGGER than their real
+     resting state, not actually canceling anything — found by comparing
+     offsetHeight before vs. after scroll and discovering they genuinely
+     differed (107px vs 117px) when they should have been identical. */
+  body.is-scrolled .members-filter-card .pill {
+    padding: 6px 14px !important;
+    min-height: 30px !important;
+    font-size: 0.82rem !important;
+  }
+  body.is-scrolled .members-filter-card { padding: 16px 20px !important; }
+  /* TEMP DIAGNOSTIC: contain:layout (from the real style.css, added earlier
+     for frame-rate scoping) isolates this element's box model from
+     affecting anything outside it — testing whether that's what's blocking
+     its negative margin-bottom from reducing .sticky-top-stack's height. */
+  .members-filter-card, .members-filter-card .pill-row { contain: none !important; }
+  .members-filter-card {
+    transform-origin: top center;
+    transition: transform 0.2s ease, margin-top 0.2s ease, margin-bottom 0.2s ease;
+  }
+  body.is-scrolled .members-filter-card {
+    transform: scale(0.72);
+    margin-bottom: var(--pills-card-margin-collapse, 0px);
+  }
+
+  /* --- Prototype fix v3 (test file only) ---
+     .members-thead-wrap moved from inside .members-table-card (in <main>)
+     to being a normal-flow child of .sticky-top-stack, right after the
+     pills card — same reasoning as the earlier header/pills merge: this
+     eliminates the JS-measured cross-element offset entirely (no more
+     --members-thead-top), so there's zero per-frame cost for its position,
+     regardless of how large the table gets. It no longer needs its own
+     position:sticky (the wrapper is already stuck) or a top offset.
+
+     Width was originally set to just the bare 1010px table (matching only
+     .members-tbody-wrap's inner table), but .members-table-card still wraps
+     tbody-wrap in its own 22px padding + border (the generic .card class) —
+     so the header ended up ~46px narrower than the card box below it,
+     visibly inset on both sides instead of spanning its full width.
+     Measured directly at every breakpoint (390–1400px) to confirm: matching
+     .members-filter-card's own width/max-width numbers exactly (they're
+     already the same footprint as .members-table-card, verified by direct
+     measurement) and adding the same 22px side padding .card provides makes
+     the header's outer edges land flush with the card/pills-bar above and
+     below it, while the inner table still renders at its natural 1010px
+     (1056 outer − 44 padding − 2 border = 1010).
+
+     Follow-up ask: keep the pills bar at this same fixed 1056px, but let
+     the SPREADSHEET stretch wider on desktop to fill <main>'s own 1320px
+     content boundary (1320 − 32px main side-padding = 1288px) instead of
+     capping at 1056px like the pills bar does — with the columns actually
+     widening to use the space (see the percentage column-width rules
+     below), not just extra empty padding. width is now a range (min 1056
+     for the same mobile floor as before, max the 1288px boundary) instead
+     of a fixed 1056.
+
+     No min-width on the wrapper itself: on mobile it must stay free to
+     shrink narrower than its content (down to the viewport), exactly like
+     before — that's what makes the table inside it overflow and need the
+     existing overflow-x:hidden + JS scrollLeft sync in the first place. The
+     1010px floor belongs on the <table> itself instead (see the
+     table.members-table rule further down) — putting it here too was tried
+     first and broke both things that depended on the wrapper staying
+     narrow: the page gained real horizontal scroll (the wrapper itself
+     started overflowing <body>, not just its own internal content), and
+     the thead/tbody horizontal scroll-sync stopped doing anything (nothing
+     left inside the wrapper to scroll). */
+  .members-thead-wrap {
+    position: static !important;
+    top: auto !important;
+    max-width: min(calc(100% - 32px), 1288px);
+    padding: 0 22px; /* matches .card's own 22px side padding */
+    margin: 0 auto; /* margin-top set below, in the follow-up #2 block, alongside its scroll-compact transition */
+  }
+  /* Now that the wrapper has no min-width (see comment above), its
+     max-width formula is back in play at every screen size, so it needs
+     the same breakpoint-specific side padding .members-filter-card uses
+     (24px at <=900px vs 32px above that) to keep their left edges aligned
+     — without this, the header sits ~4px further right than the pills bar
+     on phones/tablets. */
+  @media (max-width: 900px) {
+    .members-thead-wrap { max-width: min(calc(100% - 24px), 1288px); }
+  }
+
+  /* --- Prototype fix v3 follow-up (test file only) --- .sticky-top-stack's
+     own bottom padding (0 0 22px, only zeroed when .is-scrolled) used to sit
+     between the pills bar and <main> (back when .members-thead-wrap was
+     still inside .members-table-card). Now that thead-wrap is the stack's
+     last child, that padding lands between the header row and the
+     tbody card instead, breaking their flush, matched-rounded-corner look
+     at rest — visible as a gap with the tbody card's top corners exposed.
+     thead-wrap and tbody-wrap must stay visually joined in every state, not
+     just scrolled, so this padding is dropped entirely rather than only
+     while scrolled. */
+  .sticky-top-stack { padding-bottom: 0 !important; }
+
+  /* --- Prototype fix v3 follow-up #2 (test file only) --- two more visual
+     gaps left over from moving .members-thead-wrap out of .members-table-card:
+     1. thead-wrap had zero margin from .members-filter-card above it (it
+        used to get that breathing room for free, inherited from <main>'s
+        flex gap, before it moved out of <main> entirely) — it was landing
+        flush against the pills bar with no space at all.
+     2. .members-table-card still carries the generic .card class's own
+        border + 22px padding + all-4-corners radius, which now wraps around
+        .members-tbody-wrap alone (since thead-wrap left), creating a
+        second, visually separate rounded box below the header instead of
+        one continuous spreadsheet. Dropping the card's own top border/
+        padding/rounding lets tbody-wrap's own border sit flush against
+        thead-wrap's bottom edge, exactly like they were flush siblings
+        before the move — only the left/right/bottom padding (for the
+        status text under the table) stays.
+  */
+  .members-thead-wrap {
+    margin: 22px auto 0;
+    transition: margin-top 0.2s ease;
+  }
+  body.is-scrolled .members-thead-wrap { margin-top: 0; }
+
+  .members-table-card {
+    padding-top: 0;
+    border-top: none;
+    border-radius: 0 0 14px 14px;
+  }
+
+  /* --- Prototype fix v5 (test file only) --- .members-table-card was
+     deliberately width:fit-content (see its comment in style.css) so an
+     under-filled table wouldn't leave ugly empty padding on a wide screen —
+     but that also caps the spreadsheet at its bare 1010px content instead
+     of using the room now available up to <main>'s 1288px content
+     boundary. align-self:stretch (back to the flex column's own default)
+     plus width:auto lets the card fill that space instead of hugging its
+     content; the column-width rule below is what actually puts the extra
+     space to use instead of leaving it as padding.
+     Percentages replace the fixed px widths 1:1 by ratio (e.g. 230/1010 =
+     22.77%) so proportions stay identical to today at the 1010px floor,
+     and scale up together as the table grows past it. min-width on the
+     table itself preserves that exact 1010px floor on phones (unchanged
+     from today — table-layout:fixed with percentage columns would
+     otherwise just keep shrinking the columns to fit a narrow screen,
+     losing the legibility the horizontal-scroll behavior exists for). */
+  .members-table-card { align-self: stretch; width: auto; }
+  /* style.css pins table.members-table to a fixed width:1010px (line 663) —
+     that's what was actually capping the table regardless of the container
+     changes above; the percentage columns can't grow past a fixed-width
+     parent. Letting the table's own width float (100%, filling whatever
+     its wrapper now allows) with a min-width floor is what lets it and its
+     columns actually grow on desktop instead of just the empty chrome
+     around it. */
+  table.members-table { width: 100%; min-width: 1010px; }
+  table.members-table th:nth-child(1), table.members-table td:nth-child(1) { width: 6.9307%; }
+  table.members-table th:nth-child(2), table.members-table td:nth-child(2) { width: 6.9307%; }
+  table.members-table th:nth-child(3), table.members-table td:nth-child(3) { width: 22.7723%; }
+  table.members-table th:nth-child(4), table.members-table td:nth-child(4) { width: 22.7723%; }
+  table.members-table th:nth-child(5), table.members-table td:nth-child(5) { width: 19.802%; }
+  table.members-table th:nth-child(6), table.members-table td:nth-child(6) { width: 12.8713%; }
+  table.members-table th:nth-child(7), table.members-table td:nth-child(7) { width: 7.9208%; }
+
+</style>
+</head>
+<body>
+
+<script>
+  // Test-only: skip the password gate so this file can never bounce you to
+  // index.html (which has nothing hidden — it's a different page).
+  sessionStorage.setItem("boliammanur_unlocked", "1");
+</script>
+
+<div class="sticky-top-stack">
+  <header>
+    <h1>போளியம்மனூர் உறுப்பினர்கள்</h1>
+  </header>
+
+  <section class="card compact members-filter-card">
+    <div class="pill-row" id="type-filter-pills">
+      <button type="button" class="pill active" data-filter="all" data-label="மொத்த உறுப்பினர்கள்">மொத்த உறுப்பினர்கள்</button>
+      <button type="button" class="pill" data-filter="24manai" data-label="24 Manai">24 Manai</button>
+      <button type="button" class="pill" data-filter="others" data-label="Others">Others</button>
+    </div>
+  </section>
+
+  <div class="members-thead-wrap" id="members-thead-wrap">
+    <table class="sheet wide members-table">
+      <thead>
+        <tr><th>S.No</th><th>Roll No.</th><th>பெயர்</th><th>Name</th><th>Mobile Number</th><th>Type</th><th>Avoid</th></tr>
+        <tr class="filter-row">
+          <td><label for="filter-sno" class="sr-only">Filter by S.No</label><input type="text" id="filter-sno" class="filter-input" placeholder="Filter" inputmode="numeric" pattern="[0-9]*" /></td>
+          <td><label for="filter-roll" class="sr-only">Filter by Roll No.</label><input type="text" id="filter-roll" class="filter-input" placeholder="Filter" inputmode="numeric" pattern="[0-9]*" /></td>
+          <td><label for="filter-name" class="sr-only">Filter by பெயர்</label><input type="text" id="filter-name" class="filter-input" placeholder="Filter" /></td>
+          <td><label for="filter-name-en" class="sr-only">Filter by Name</label><input type="text" id="filter-name-en" class="filter-input" placeholder="Filter" /></td>
+          <td><label for="filter-mobile" class="sr-only">Filter by Mobile Number</label><input type="text" id="filter-mobile" class="filter-input" placeholder="Filter" inputmode="numeric" /></td>
+          <td>
+            <label for="filter-type" class="sr-only">Filter by Type</label>
+            <select id="filter-type" class="filter-input">
+              <option value="">All</option>
+              <option value="24Manai">24Manai</option>
+              <option value="Others">Others</option>
+            </select>
+          </td>
+          <td></td>
+        </tr>
+      </thead>
+    </table>
+  </div>
+</div>
+
+<main>
+  <section class="card members-table-card">
+    <div class="table-wrap members-tbody-wrap" id="members-tbody-wrap">
+      <table class="sheet wide members-table">
+        <tbody id="members-body"></tbody>
+        <tfoot>
+          <tr id="new-member-row">
+            <td id="new-m-sno" class="new-member-num"></td>
+            <td id="new-m-roll" class="new-member-num"></td>
+            <td><label for="new-m-name" class="sr-only">New member's பெயர்</label><input type="text" id="new-m-name" placeholder="புதிய பெயரை உள்ளிடவும்..." /></td>
+            <td><label for="new-m-name-en" class="sr-only">New member's Name</label><input type="text" id="new-m-name-en" placeholder="Name" /></td>
+            <td><label for="new-m-mobile" class="sr-only">New member's Mobile Number</label><input type="text" id="new-m-mobile" placeholder="Mobile" inputmode="numeric" pattern="[0-9]*" disabled /></td>
+            <td>
+              <label for="new-m-type" class="sr-only">New member's Type</label>
+              <select id="new-m-type" disabled required>
+                <option value="">Select Type…</option>
+                <option value="24Manai">24Manai</option>
+                <option value="Others">Others</option>
+              </select>
+            </td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <p class="status" id="members-status" role="status" aria-live="polite"></p>
+  </section>
+
+  <div id="scroll-spacer"></div>
+</main>
+
+<div class="totals-banner">
+  <a href="index.html" class="header-link-btn">← Back</a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="shared.js"></script>
+<script src="members.js"></script>
+<script>
+  // Prototype fix (test file only) — see the <style> block above for why.
+  // transform:scale() doesn't shrink the space the card reserves in the
+  // page (transform is purely visual, not layout), so a negative margin
+  // pulls that freed space closed — computed from the card's actual
+  // rendered height (offsetHeight, which transform doesn't affect) rather
+  // than guessed, since it varies by screen width / how the pills wrap.
+  const PILLS_CARD_COMPACT_SCALE = 0.72; // must match the scale() value above
+  function syncPillsCardCollapse() {
+    const card = document.querySelector(".members-filter-card");
+    if (!card) return;
+    const collapse = -(card.offsetHeight * (1 - PILLS_CARD_COMPACT_SCALE));
+    document.documentElement.style.setProperty("--pills-card-margin-collapse", collapse + "px");
+  }
+  window.addEventListener("resize", syncPillsCardCollapse);
+  window.addEventListener("load", syncPillsCardCollapse);
+  if (document.fonts) document.fonts.ready.then(syncPillsCardCollapse);
+  syncPillsCardCollapse();
+  // The pill counts ("மொத்த உறுப்பினர்கள் - 96") populate asynchronously
+  // once Supabase data arrives, well after "load" fires — re-measuring
+  // only then left the card's real (taller, count-populated) height
+  // uncorrected, undershooting the margin and leaving a residual gap.
+  // Watching the pill row's own text content is the direct fix.
+  const pillRow = document.getElementById("type-filter-pills");
+  if (pillRow) new MutationObserver(syncPillsCardCollapse).observe(pillRow, { childList: true, subtree: true, characterData: true });
+
+  // --- Prototype fix v3 (test file only) --- .members-thead-wrap is now a
+  // plain normal-flow child of .sticky-top-stack (see the <style> block),
+  // so it no longer needs --members-thead-top at all. members.js's own
+  // polling loop still calls this function by name every frame during the
+  // shrink/expand — overriding it to a no-op (instead of leaving it
+  // deleted, which would fall back to the real, reflow-forcing version in
+  // members.js) is what actually removes the per-frame cost, not just the
+  // symptom of it.
+  function syncMembersStickyOffsets() {}
+</script>
+</body>
+</html>
