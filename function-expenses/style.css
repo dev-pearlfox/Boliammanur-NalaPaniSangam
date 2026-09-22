@@ -246,6 +246,10 @@ main {
 
 /* Moved out of <header> — the banner's own columns (see .totals-track) only
    start at சந்தா (col 5), so the space to their left is otherwise empty.
+   The two buttons (members-link / ← Back, and logout) share one flex
+   container (.banner-left-group), so only ONE element needs to be
+   position:absolute + JS-tracked, and the logout button naturally sits
+   right next to its sibling without needing its own left/right/transform.
    Specificity here beats .header-link-btn's own mobile rule (position:static)
    so this stays positioned at every screen width. left:16px here is only a
    fallback before JS's first paint — alignTotalsBanner() (app.js) sets it
@@ -253,29 +257,70 @@ main {
    explicit request: pinned to the SPREADSHEET's own left edge, so it moves
    left/right in sync with .sheet-tbody-wrap's horizontal scroll rather than
    staying glued to the viewport's edge regardless of scroll position. */
-.totals-banner .header-link-btn {
+.totals-banner .banner-left-group {
   position: absolute;
   left: 16px;
   top: 50%;
-  right: auto;
-  bottom: auto;
   transform: translateY(-50%);
-  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   z-index: 26;
+}
+/* Individual buttons inside the group flow naturally — no absolute
+   positioning per-button, no per-button transforms. */
+.totals-banner .banner-left-group .header-link-btn {
+  position: static;
+  transform: none;
+  margin: 0;
+}
+
+/* Buttons inherit their look from .header-link-btn; .logout-btn only needs
+   the extras a real <button> (vs an <a>) needs to look/feel like the link
+   next to it: form font-family reset and an explicit cursor. */
+.totals-banner .logout-btn,
+.totals-banner .master-lock-btn {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Master lock lives in the members.html banner as a single global guard
+   against accidental edits — when engaged, every per-cell 🔒 button is
+   hidden and every Avoid checkbox + the new-member row are inert. The
+   emoji is the only content, so the padding is tighter than the text
+   buttons next to it (which need room for a full Tamil word). */
+.totals-banner .master-lock-btn {
+  padding: 6px 10px;
+  line-height: 1;
+  font-size: 0.95rem;
+}
+
+/* master-locked = read-only page mode. Cell inputs are set to readonly
+   (see setCellsLocked in members.js) so no typing is possible; Avoid
+   checkboxes and the new-member row also visibly disable so the
+   read-only intent is obvious to the user at a glance. */
+body.master-locked #members-body .avoid-check {
+  pointer-events: none;
+  opacity: 0.45;
+}
+body.master-locked #new-member-row input,
+body.master-locked #new-member-row select {
+  opacity: 0.6;
 }
 
 @media (max-width: 600px) {
   .totals-banner .header-link-btn { font-size: 0.75rem; padding: 6px 12px; }
+  .totals-banner .banner-left-group { gap: 6px; }
 }
 
 /* members.html only — its footer banner has no .totals-track (no ledger
    numbers to leave room for, unlike the main Ledger Sheet page that shares
-   this same .totals-banner markup), so the back button can sit centered
+   this same .totals-banner markup), so the button group can sit centered
    across the whole bar instead of pinned to the left edge. Scoped to this
-   extra class rather than changing .totals-banner .header-link-btn itself,
-   since that rule's left:16px is deliberately left-anchored specifically to
-   leave room for the Ledger Sheet's totals-track columns. */
-.totals-banner-simple .header-link-btn {
+   extra class rather than changing .totals-banner .banner-left-group
+   itself, since that rule's left:16px is deliberately left-anchored
+   specifically to leave room for the Ledger Sheet's totals-track columns. */
+.totals-banner-simple .banner-left-group {
   left: 50%;
   transform: translate(-50%, -50%);
 }
@@ -544,6 +589,7 @@ th { color: var(--muted); font-weight: 600; }
 
 #gate .card { width: 100%; max-width: 460px; text-align: center; }
 .gate-logo { width: 400px; max-width: 100%; height: auto; display: block; margin: 0 auto 12px; }
+.gate-subtitle { color: var(--muted); margin: -6px 0 8px; font-size: 2rem; }
 /* #gate-status is a <p>, which carries a default browser margin — visible
    as extra space below the Unlock button even while the status text is
    empty (min-height:1.2em above already reserves room for the message
@@ -980,23 +1026,6 @@ body.is-scrolled .sheet-filter-card .pill-row.has-overflow {
   background: transparent;
 }
 .cell-input.unlocked { color: var(--text); background: var(--accent-soft); }
-
-.lock-btn {
-  flex-shrink: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 0.95rem;
-  padding: 8px;
-  min-width: 28px;
-  min-height: 28px;
-  border-radius: 6px;
-  line-height: 1;
-  position: relative;
-  z-index: 1;
-}
-
-.lock-btn:hover { background: var(--accent-soft); }
 
 table.sheet thead tr.filter-row th,
 table.sheet thead tr.filter-row td {

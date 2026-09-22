@@ -138,19 +138,26 @@ $("filter-function").addEventListener("change", render);
 
 $("function-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const submitBtn = e.submitter || $("function-form").querySelector('button[type="submit"]');
   const name = $("function-name").value.trim();
   const year = parseInt($("function-year").value, 10);
   const allowedType = $("function-allowed-type").value;
   const santhaAmount = Number($("function-santha-amount").value) || 0;
   if (!name || !year) return;
-  const { error } = await client.from("functions").insert({ name, year, allowed_type: allowedType, santha_amount: santhaAmount });
-  if (error) {
-    setStatus("function-status", "Error: " + error.message, true);
-    return;
+  submitBtn.disabled = true;
+  setStatus("function-status", "Adding...", false);
+  try {
+    const { error } = await client.from("functions").insert({ name, year, allowed_type: allowedType, santha_amount: santhaAmount });
+    if (error) {
+      setStatus("function-status", "Error: " + error.message, true);
+      return;
+    }
+    $("function-form").reset();
+    setStatus("function-status", "Added.", false);
+    await loadAll();
+  } finally {
+    submitBtn.disabled = false;
   }
-  $("function-form").reset();
-  setStatus("function-status", "Added.", false);
-  await loadAll();
 });
 
 // ---------- Rendering ----------
@@ -414,19 +421,25 @@ function renderMaterialsTable(mats) {
 
 $("password-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const submitBtn = e.submitter || $("password-form").querySelector('button[type="submit"]');
   const oldPassword = $("old-password").value;
   const newPassword = $("new-password").value;
+  submitBtn.disabled = true;
   setStatus("password-status", "Updating...", false);
-  const { data, error } = await client.rpc("set_password", { old_password: oldPassword, new_password: newPassword });
-  if (error) {
-    setStatus("password-status", "Error: " + error.message, true);
-    return;
-  }
-  if (data === true) {
-    setStatus("password-status", "Password updated.", false);
-    $("password-form").reset();
-  } else {
-    setStatus("password-status", "Current password is incorrect.", true);
+  try {
+    const { data, error } = await client.rpc("set_password", { old_password: oldPassword, new_password: newPassword });
+    if (error) {
+      setStatus("password-status", "Error: " + error.message, true);
+      return;
+    }
+    if (data === true) {
+      setStatus("password-status", "Password updated.", false);
+      $("password-form").reset();
+    } else {
+      setStatus("password-status", "Current password is incorrect.", true);
+    }
+  } finally {
+    submitBtn.disabled = false;
   }
 });
 

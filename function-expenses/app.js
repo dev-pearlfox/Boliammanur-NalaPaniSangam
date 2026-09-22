@@ -5,18 +5,23 @@ let functionsList = [];
 let ledgerEntries = [];
 let selectedYear = null;
 let selectedFunctionId = null;
+// Whether the user has toggled the ledger table closed via the members
+// count button — preserved across re-renders so a follow-up render
+// (adding a new row, switching function, save success, etc.) doesn't
+// un-hide the table behind their back.
+let sheetCollapsed = false;
 const saveTimers = {};
 
 const $ = (id) => document.getElementById(id);
 
 // Declared here (not down at the scroll-freeze block further below,
 // alongside the rest of that logic) specifically so unlockApp() can reset
-// it safely — unlockApp() can run synchronously at script-load time via
-// the sessionStorage auto-unlock check further down, which happens before
-// the scroll-freeze block's own `let` declarations would otherwise be
-// reached, and referencing a `let` before its declaration throws
-// (temporal dead zone), even from inside a function, if that function is
-// CALLED before the declaration line has executed.
+// it safely — unlockApp() can run early via the getSession() auto-unlock
+// check further down, which may resolve before the scroll-freeze block's
+// own `let` declarations would otherwise be reached, and referencing a
+// `let` before its declaration throws (temporal dead zone), even from
+// inside a function, if that function is CALLED before the declaration
+// line has executed.
 let freezeArmed = true;
 
 function setStatus(id, message, isError) {
@@ -28,26 +33,34 @@ function setStatus(id, message, isError) {
 // escapeHtml, formatMobile, filterMobileInput, syncHeaderTitleCollapse live
 // in shared.js (loaded before this file) — kept as one copy with members.js.
 
-// ---------- Password gate ----------
+// ---------- Login gate (Supabase Auth) ----------
+// Shared admin login: users only type a password, the email is fixed in
+// supabase-config.js (ADMIN_EMAIL). Supabase persists the session in
+// localStorage automatically, so members.html sees the same session and
+// refreshes across tabs / reloads don't force re-login until the JWT
+// expires (default 1 hour, auto-refreshed by supabase-js).
 
 $("gate-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const password = $("gate-password").value;
-  setStatus("gate-status", "Checking...", false);
-  const { data, error } = await client.rpc("check_password", { input: password });
+  setStatus("gate-status", "Signing in...", false);
+  const { error } = await client.auth.signInWithPassword({
+    email: ADMIN_EMAIL,
+    password,
+  });
   if (error) {
-    setStatus("gate-status", "Error contacting server.", true);
+    // Don't leak which of email/password was wrong — Supabase already
+    // returns a generic "Invalid login credentials" for that reason.
+    setStatus("gate-status", error.message || "Sign-in failed.", true);
     return;
   }
-  if (data === true) {
-    sessionStorage.setItem("boliammanur_unlocked", "1");
-    unlockApp();
-  } else {
-    setStatus("gate-status", "Wrong password.", true);
-  }
+  unlockApp();
 });
 
 function unlockApp() {
+  // Clear the password field so it doesn't sit in memory / can't be
+  // recovered from the DOM after the gate is hidden.
+  $("gate-password").value = "";
   $("gate").classList.add("hidden");
   $("app").classList.remove("hidden");
   // #app is display:none behind the gate, so header h1's offsetHeight read
@@ -81,9 +94,34 @@ function unlockApp() {
   loadAll();
 }
 
-if (sessionStorage.getItem("boliammanur_unlocked") === "1") {
-  unlockApp();
-}
+// Auto-unlock if a Supabase session already exists (returning visitor
+// whose JWT hasn't expired, or someone who just logged in on members.html
+// and came back). getSession() reads from localStorage synchronously
+// under the hood but the API is async — we fire-and-forget here so the
+// rest of the script can keep initializing without awaiting at top level.
+client.auth.getSession().then(({ data: { session } }) => {
+  if (session) unlockApp();
+});
+
+// If the session is revoked/expires while the app is open (e.g. signOut
+// from another tab), bounce back to the gate instead of leaving a
+// dead-authenticated UI that silently 401s on every request.
+client.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") {
+    $("app").classList.add("hidden");
+    $("gate").classList.remove("hidden");
+    $("gate-password").value = "";
+    setStatus("gate-status", "", false);
+  }
+});
+
+// Logout button lives in the totals-banner. signOutAndReload (shared.js)
+// reloads after signOut so no stale in-memory state (open cells,
+// debounced timers, cached data) survives past a logout.
+$("logout-btn").addEventListener("click", () => {
+  if (!window.confirm("Sign out?")) return;
+  signOutAndReload(client);
+});
 
 // ---------- Scroll-compact shrink ----------
 // Same architecture as members.html (see that file's HEART LOGIC index for
@@ -448,9 +486,14 @@ function updateSheetTitle() {
   // exactly matches the spreadsheet's width, so its left edge never
   // drifts; .sheet-title-inner is the part that actually scales/shrinks
   // once compact.
-  $("sheet-title").querySelector(".sheet-title-inner").innerHTML = `<span>${escapeHtml(title)}</span> <button type="button" id="toggle-members-btn" class="members-toggle active">உறுப்பினர்கள் - ${peopleForCurrentFunction().length}</button>`;
-  $("sheet-tbody-wrap").classList.remove("hidden");
-  $("sheet-thead-wrap").classList.remove("hidden");
+  $("sheet-title").querySelector(".sheet-title-inner").innerHTML =
+    `<span>${escapeHtml(title)}</span> <button type="button" id="toggle-members-btn" class="members-toggle ${sheetCollapsed ? "" : "active"}">உறுப்பினர்கள் - ${peopleForCurrentFunction().length}</button>`;
+  // Respect the user's collapse toggle across re-renders — updateSheetTitle
+  // is called after adding a row / switching function / saving, and used to
+  // unconditionally un-hide the sheet, popping it back open behind the
+  // user's back. Now driven by sheetCollapsed state instead.
+  $("sheet-tbody-wrap").classList.toggle("hidden", sheetCollapsed);
+  $("sheet-thead-wrap").classList.toggle("hidden", sheetCollapsed);
 }
 
 $("sheet-title").addEventListener("click", (e) => {
@@ -460,10 +503,11 @@ $("sheet-title").addEventListener("click", (e) => {
   // comment in style.css), separate from .sheet-tbody-wrap in <main> — both
   // need toggling together to fully collapse/restore the table, matching
   // the original single-wrap behavior before the split.
-  const nowHidden = $("sheet-tbody-wrap").classList.toggle("hidden");
-  $("sheet-thead-wrap").classList.toggle("hidden", nowHidden);
-  btn.classList.toggle("active", !nowHidden);
-  if (!nowHidden) alignTotalsBanner();
+  sheetCollapsed = !sheetCollapsed;
+  $("sheet-tbody-wrap").classList.toggle("hidden", sheetCollapsed);
+  $("sheet-thead-wrap").classList.toggle("hidden", sheetCollapsed);
+  btn.classList.toggle("active", !sheetCollapsed);
+  if (!sheetCollapsed) alignTotalsBanner();
 });
 
 $("year-pills").addEventListener("click", async (e) => {
@@ -678,10 +722,13 @@ function alignTotalsBanner() {
     col.style.left = rect.left + "px";
     col.style.width = rect.width + "px";
   });
-  const linkBtn = document.querySelector(".totals-banner .header-link-btn");
+  // Move the whole left-group (members-link + logout) as one unit, not
+  // just the members-link — so the logout button sits next to its sibling
+  // regardless of horizontal scroll, instead of drifting away.
+  const leftGroup = document.querySelector(".totals-banner .banner-left-group");
   const firstTh = ths[0];
-  if (linkBtn && firstTh) {
-    linkBtn.style.left = firstTh.getBoundingClientRect().left + "px";
+  if (leftGroup && firstTh) {
+    leftGroup.style.left = firstTh.getBoundingClientRect().left + "px";
   }
 }
 window.addEventListener("resize", alignTotalsBanner);
@@ -694,18 +741,41 @@ $("sheet-tbody-wrap").addEventListener("scroll", () => {
   alignTotalsBanner();
 });
 
+// Debounced re-render so fast typing in a filter doesn't force a full
+// re-render on every keystroke — and flushes any in-flight debounced
+// cell saves first, so a value the user just typed into an f-asal/vatti/
+// thogai/paid input isn't lost when innerHTML gets replaced. debounce()
+// itself lives in shared.js (used by both pages).
+function flushPendingCellSaves() {
+  Object.keys(saveTimers).forEach((personId) => {
+    const timerId = saveTimers[personId];
+    if (!timerId) return;
+    clearTimeout(timerId);
+    delete saveTimers[personId];
+    const tr = $("sheet-body").querySelector(`tr[data-person="${personId}"]`);
+    if (tr) saveRow(personId, tr);
+  });
+}
+function requestRenderSheet() {
+  flushPendingCellSaves();
+  renderSheet();
+}
+const debouncedRequestRenderSheet = debounce(requestRenderSheet, FILTER_DEBOUNCE_MS);
+
 [
   "filter-sno",
   "filter-name",
   "filter-name-en",
   "filter-mobile",
-  "filter-santha",
   "filter-asal",
   "filter-vatti",
   "filter-thogai",
   "filter-total",
-].forEach((id) => $(id).addEventListener("input", renderSheet));
-$("filter-paid").addEventListener("input", renderSheet);
+  "filter-paid",
+].forEach((id) => $(id).addEventListener("input", debouncedRequestRenderSheet));
+// The santha filter is a <select> — change fires once per commit, no need
+// to debounce or flush (its transition is intentional, not typing).
+$("filter-santha").addEventListener("change", renderSheet);
 
 function rowValues(tr) {
   const santhaCheck = tr.querySelector(".f-santha-check");
@@ -745,7 +815,7 @@ async function saveRow(personId, tr) {
   setStatus("sheet-status", "", false);
   tr.querySelectorAll("input.uncertain").forEach((i) => i.classList.remove("uncertain"));
   tr.classList.add("row-saved");
-  setTimeout(() => tr.classList.remove("row-saved"), 1200);
+  setTimeout(() => tr.classList.remove("row-saved"), ROW_SAVE_BLINK_MS);
   const idx = ledgerEntries.findIndex((e) => e.person_id === personId);
   if (idx >= 0) ledgerEntries[idx] = { ...ledgerEntries[idx], ...payload };
   else ledgerEntries.push(payload);
@@ -755,9 +825,13 @@ async function saveRow(personId, tr) {
 function scheduleSave(personId, tr, immediate) {
   clearTimeout(saveTimers[personId]);
   if (immediate) {
+    delete saveTimers[personId];
     saveRow(personId, tr);
   } else {
-    saveTimers[personId] = setTimeout(() => saveRow(personId, tr), 700);
+    saveTimers[personId] = setTimeout(() => {
+      delete saveTimers[personId];
+      saveRow(personId, tr);
+    }, SAVE_DEBOUNCE_MS);
   }
 }
 
@@ -835,10 +909,14 @@ $("sheet-body").addEventListener("keydown", (e) => {
 
 // Safari doesn't fire blur/change when clicking non-interactive elements
 // (blank space, plain text, etc.), so also catch clicks anywhere else at the
-// document level for whichever field currently has focus.
+// document level for whichever field currently has focus. isInteractiveTarget
+// (shared.js) filters out clicks on other inputs/buttons/etc. — those clicks
+// are meant for their own actions and shouldn't backdoor-commit an
+// unrelated in-focus field.
 document.addEventListener("click", (e) => {
   const active = document.activeElement;
   if (!active || active === e.target) return;
+  if (isInteractiveTarget(e.target)) return;
   if (active.classList?.contains("f-mobile")) commitMobile(active);
   else if (active.classList?.contains("f-name-en")) commitNameEn(active);
 });
@@ -862,11 +940,18 @@ async function addNewRow() {
     return;
   }
 
-  const memberNo = $("new-member-no").value ? parseInt($("new-member-no").value, 10) : nextMemberNo();
-  const dupNo = people.find((p) => p.member_no === memberNo);
-  if (dupNo) {
-    setStatus("sheet-status", `S.No. ${memberNo} is already used by "${dupNo.name}".`, true);
-    return;
+  // memberNo is only respected if the user typed one — otherwise
+  // insertPersonRaceSafe computes the freshest value from a live fetch so
+  // two admins adding at the same second can't collide on the same
+  // member_no (see shared.js). Even a user-typed one runs through the DB
+  // unique constraint as the ultimate backstop.
+  const typedMemberNo = $("new-member-no").value ? parseInt($("new-member-no").value, 10) : null;
+  if (typedMemberNo !== null) {
+    const dupNo = people.find((p) => p.member_no === typedMemberNo);
+    if (dupNo) {
+      setStatus("sheet-status", `S.No. ${typedMemberNo} is already used by "${dupNo.name}".`, true);
+      return;
+    }
   }
 
   const mobile = formatMobile($("new-mobile").value.trim());
@@ -885,11 +970,9 @@ async function addNewRow() {
       return;
     }
   }
-  const { data: person, error: personError } = await client
-    .from("people")
-    .insert({ name, member_no: memberNo, mobile, name_en: nameEn, type: newPersonType, roll_number: nextRollNumber() })
-    .select()
-    .single();
+  const base = { name, mobile, name_en: nameEn, type: newPersonType };
+  if (typedMemberNo !== null) base.member_no = typedMemberNo;
+  const { data: person, error: personError } = await insertPersonRaceSafe(client, base);
   if (personError) {
     setStatus("sheet-status", "Error adding person: " + personError.message, true);
     return;
@@ -928,7 +1011,7 @@ async function addNewRow() {
   if (savedTr) {
     savedTr.scrollIntoView({ behavior: "smooth", block: "center" });
     savedTr.classList.add("row-blink");
-    setTimeout(() => savedTr.classList.remove("row-blink"), 1100);
+    setTimeout(() => savedTr.classList.remove("row-blink"), ROW_ADDED_BLINK_MS);
   }
 }
 
@@ -972,7 +1055,11 @@ $("new-mobile").addEventListener("input", () => filterMobileInput($("new-mobile"
 
 // Safari doesn't fire blur/focusout when clicking non-interactive elements (blank
 // space, plain text, etc.), so a click-anywhere-outside check is done at the
-// document level instead of relying on focus events.
+// document level instead of relying on focus events. isInteractiveTarget
+// filter (shared.js) skips clicks on filters/pills/buttons/links so the new
+// row doesn't auto-commit when the user is trying to click something else.
 document.addEventListener("click", (e) => {
-  if (!$("sheet-new-row").contains(e.target)) addNewRow();
+  if ($("sheet-new-row").contains(e.target)) return;
+  if (isInteractiveTarget(e.target)) return;
+  addNewRow();
 });

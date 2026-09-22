@@ -1,9 +1,35 @@
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
 
-if (sessionStorage.getItem("boliammanur_unlocked") !== "1") {
-  window.location.href = "index.html";
-}
+// Auth gate — bounce to index.html if no valid Supabase session. Same
+// client + shared localStorage session key means whichever page logged
+// in, the other one recognizes it. Done as an async IIFE so the redirect
+// (if needed) happens before the rest of this script tries to query
+// tables that would just return [] under RLS anyway.
+(async () => {
+  const { data: { session } } = await client.auth.getSession();
+  if (!session) {
+    window.location.href = "index.html";
+  }
+})();
+
+// If someone signs out from another tab (or the JWT is revoked), bounce
+// back to the login screen instead of quietly failing every request.
+client.auth.onAuthStateChange((event) => {
+  if (event === "SIGNED_OUT") {
+    window.location.href = "index.html";
+  }
+});
+
+// Logout button in the totals-banner. signOutAndReload (shared.js)
+// reloads after signOut so no stale in-memory state (open cells,
+// debounced timers) survives past a logout — the signOut also fires the
+// SIGNED_OUT event above, which redirects to index.html on the reloaded
+// page.
+$("logout-btn").addEventListener("click", () => {
+  if (!window.confirm("Sign out?")) return;
+  signOutAndReload(client);
+});
 
 let allPeople = [];
 let currentFilter = "all";
@@ -76,11 +102,17 @@ function setStatus(message, isError) {
   el.className = "status " + (isError ? "error" : "ok");
 }
 
+// Cell lock state is entirely dictated by the master lock (see setMasterLocked)
+// — no per-cell 🔒 button anymore, since one global toggle in the totals-banner
+// is the single source of truth. Rendered rows just have to match whatever the
+// current master state is at render time; setCellsLocked syncs later toggles.
 function cell(field, value, extraAttrs) {
+  const locked = document.body.classList.contains("master-locked");
+  const readonlyAttr = locked ? "readonly" : "";
+  const unlockedClass = locked ? "" : " unlocked";
   return `<td>
     <div class="cell-flex">
-      <input type="text" class="cell-input" data-field="${field}" value="${escapeHtml(value)}" readonly ${extraAttrs || ""} />
-      <button type="button" class="lock-btn" aria-label="Unlock to edit">🔒</button>
+      <input type="text" class="cell-input${unlockedClass}" data-field="${field}" value="${escapeHtml(value)}" ${readonlyAttr} ${extraAttrs || ""} />
     </div>
   </td>`;
 }
@@ -193,37 +225,56 @@ function prefillNewMemberRow() {
   updateNewMemberLock();
 }
 
-// nextMemberNo()/nextRollNumber() above are fine for the tfoot's live preview
-// (just a hint, never saved as-is), but the actual insert needs numbers
-// computed from a fresh fetch right before writing — allPeople can be stale
-// if another admin (this page in another tab, or the main Ledger Sheet) added
-// someone since this page loaded. A unique constraint on both columns is the
-// real backstop (see add_unique_constraints.sql / add_roll_number.sql); on a
-// collision (Postgres code 23505) this just re-fetches and retries.
-async function insertPersonRaceSafe(base, attemptsLeft = 3) {
-  const { data: numberSource, error: fetchError } = await client.from("people").select("member_no, roll_number");
-  if (fetchError) return { data: null, error: fetchError };
-  const memberNo = computeNextMemberNo(numberSource);
-  const rollNumber = computeNextRollNumber(numberSource);
-
-  const { data, error } = await client
-    .from("people")
-    .insert({ ...base, member_no: memberNo, roll_number: rollNumber })
-    .select()
-    .single();
-  if (error && error.code === "23505" && attemptsLeft > 1) {
-    return insertPersonRaceSafe(base, attemptsLeft - 1);
-  }
-  return { data, error };
-}
+// insertPersonRaceSafe is now shared with app.js — see shared.js for the
+// HEART LOGIC comment covering the stale-list-vs-DB-constraint reasoning.
 
 // New row starts locked (only பெயர்/Name enterable) until a name is typed —
 // same pattern as the main Ledger Sheet's new row (see updateNewRowLock in app.js).
+// Master lock (see setMasterLocked below) further disables the pair of name
+// fields too, so nothing in this row is editable while the page is locked.
 function updateNewMemberLock() {
+  const masterLocked = document.body.classList.contains("master-locked");
   const hasName = $("new-m-name").value.trim().length > 0 || $("new-m-name-en").value.trim().length > 0;
-  $("new-m-mobile").disabled = !hasName;
-  $("new-m-type").disabled = !hasName;
+  $("new-m-name").disabled = masterLocked;
+  $("new-m-name-en").disabled = masterLocked;
+  $("new-m-mobile").disabled = masterLocked || !hasName;
+  $("new-m-type").disabled = masterLocked || !hasName;
 }
+
+// Master lock — one global 🔒 in the totals-banner is the sole edit
+// gate for the whole page. Unlocking makes every existing cell directly
+// editable (no per-cell click needed), the new-member row usable, and
+// Avoid checkboxes active. Re-locking commits any in-flight edit and
+// makes the whole table read-only again.
+// Page starts locked on every load so a fresh open never risks a stray
+// tap writing to the DB — the user must explicitly unlock first.
+function setMasterLocked(locked) {
+  // Commit any in-flight edit BEFORE flipping readOnly on it — commitCell
+  // bails early on readOnly inputs, so the order matters. Commits are
+  // fire-and-forget (input.value is already synced to displayValue
+  // synchronously; only the DB call is async).
+  if (locked) {
+    document.querySelectorAll("#members-body .cell-input:not([readonly])").forEach((input) => commitCell(input));
+  }
+  document.body.classList.toggle("master-locked", locked);
+  const btn = $("master-lock-btn");
+  // Action-preview: the icon shows what CLICKING will do next, not the
+  // current state — 🔒 while editing is enabled means "tap to lock",
+  // ✏️ while locked means "tap to enable editing".
+  btn.textContent = locked ? "✏️" : "🔒";
+  btn.setAttribute("aria-label", locked ? "Unlock editing" : "Lock editing");
+  btn.setAttribute("title", locked ? "Unlock editing" : "Lock editing");
+  btn.setAttribute("aria-pressed", locked ? "false" : "true");
+  setCellsLocked(locked);
+  updateNewMemberLock();
+}
+
+$("master-lock-btn").addEventListener("click", () => {
+  setMasterLocked(!document.body.classList.contains("master-locked"));
+});
+
+// Start locked on every page load — see setMasterLocked comment.
+setMasterLocked(true);
 
 async function addNewMember() {
   const name = $("new-m-name").value.trim();
@@ -244,7 +295,7 @@ async function addNewMember() {
 
   const mobile = $("new-m-mobile").value.trim().replace(/[^\d+]/g, "");
 
-  const { data: person, error } = await insertPersonRaceSafe({ name, name_en: nameEn, mobile, type });
+  const { data: person, error } = await insertPersonRaceSafe(client, { name, name_en: nameEn, mobile, type });
   if (error) {
     setStatus("Error adding member: " + error.message, true);
     return;
@@ -264,7 +315,7 @@ async function addNewMember() {
   if (savedTr) {
     savedTr.scrollIntoView({ behavior: "smooth", block: "center" });
     savedTr.classList.add("row-blink");
-    setTimeout(() => savedTr.classList.remove("row-blink"), 1100);
+    setTimeout(() => savedTr.classList.remove("row-blink"), ROW_ADDED_BLINK_MS);
   }
 }
 
@@ -285,18 +336,16 @@ $("new-m-mobile").addEventListener("input", () => filterMobileInput($("new-m-mob
 
 // Safari doesn't fire blur/focusout when clicking non-interactive elements
 // (blank space, plain text, etc.), so a click-anywhere-outside check is done
-// at the document level instead of relying on focus events.
+// at the document level instead of relying on focus events. isInteractiveTarget
+// filter (shared.js) skips clicks on filters/pills/buttons/links so the new
+// row doesn't auto-commit when the user is trying to click something else.
 document.addEventListener("click", (e) => {
-  if (!$("new-member-row").contains(e.target)) addNewMember();
+  if ($("new-member-row").contains(e.target)) return;
+  if (isInteractiveTarget(e.target)) return;
+  addNewMember();
 });
 
-function debounce(fn, wait) {
-  let timer;
-  return (...args) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), wait);
-  };
-}
+// debounce() lives in shared.js — kept as one copy with app.js.
 
 // renderRows() replaces the whole tbody, which would silently discard any
 // cell that's mid-edit (unlocked, not yet committed) — e.g. typing a Name
@@ -310,7 +359,7 @@ async function requestRenderRows() {
   }
   renderRows();
 }
-const debouncedRequestRenderRows = debounce(requestRenderRows, 150);
+const debouncedRequestRenderRows = debounce(requestRenderRows, FILTER_DEBOUNCE_MS);
 
 // S.No/Roll No./Mobile hold numbers, so their filter boxes only accept the
 // kind of input those columns can actually contain — matches how the
@@ -347,38 +396,29 @@ $("type-filter-pills").addEventListener("click", (e) => {
   requestRenderRows();
 });
 
-// btn is optional — falls back to nextElementSibling, but callers that already
-// have the button in hand (e.g. the click handler) pass it directly so the
-// icon update never depends on re-deriving it from the DOM.
-function lockInput(input, btn) {
-  input.readOnly = true;
-  input.classList.remove("unlocked");
-  btn = btn || input.nextElementSibling;
-  if (btn) {
-    btn.textContent = "🔒";
-    btn.setAttribute("aria-label", "Unlock to edit");
-  }
+// Bulk-toggle every rendered cell's edit state to match the master lock.
+// Called from setMasterLocked and after renderRows repaints tbody (fresh
+// nodes always start in whatever state cell() rendered for them, but a
+// filter/render triggered mid-session needs to re-sync too).
+function setCellsLocked(locked) {
+  document.querySelectorAll("#members-body .cell-input").forEach((input) => {
+    input.readOnly = locked;
+    input.classList.toggle("unlocked", !locked);
+  });
 }
 
-function unlockInput(input, btn) {
-  input.readOnly = false;
-  input.classList.add("unlocked");
-  btn = btn || input.nextElementSibling;
-  if (btn) {
-    btn.textContent = "✏️";
-    btn.setAttribute("aria-label", "Lock");
-  }
-  input.focus();
-  input.select();
-}
-
-// Locks (and thus commits) exactly once per edit — the readOnly check makes
-// repeat calls from different trigger paths (Enter, blur, click-away) harmless.
-async function commitCell(input, btn) {
+// Save validated input value to Supabase. Lock state is NOT touched here —
+// the master lock owns that entirely — so this is now pure "persist +
+// validate", callable from Enter/blur/click-outside without side effects
+// on the visual lock state. Short-circuits on unchanged values to avoid
+// spamming the DB when the user just tabs past unmodified cells.
+async function commitCell(input) {
   if (input.readOnly) return;
   const tr = input.closest("tr");
   const personId = tr.dataset.person;
   const field = input.dataset.field;
+  const person = allPeople.find((p) => p.id === personId);
+  if (!person) return;
   let value = input.value.trim();
   let displayValue = value;
 
@@ -394,27 +434,29 @@ async function commitCell(input, btn) {
   if (field === "name") {
     if (!value) {
       setStatus("Name cannot be empty.", true);
-      loadMembers();
+      input.value = person.name;
       return;
     }
     const dup = allPeople.find((p) => p.id !== personId && p.name.trim().toLowerCase() === value.toLowerCase());
     if (dup) {
       setStatus(`"${value}" is already used by another member (S.No. ${dup.member_no ?? "-"}).`, true);
-      loadMembers();
+      input.value = person.name;
       return;
     }
   }
 
   input.value = displayValue;
-  lockInput(input, btn);
+
+  // No change → no write. Every unlocked cell would otherwise "commit"
+  // on every blur/click-away, even if the user never typed a thing.
+  if (person[field] === value) return;
 
   const { error } = await client.from("people").update({ [field]: value }).eq("id", personId);
   if (error) {
     setStatus("Error saving: " + error.message, true);
     return;
   }
-  const p = allPeople.find((p) => p.id === personId);
-  if (p) p[field] = value;
+  person[field] = value;
   setStatus("Saved.", false);
 }
 
@@ -426,49 +468,49 @@ $("members-body").addEventListener("input", (e) => {
 $("members-body").addEventListener("change", async (e) => {
   if (!e.target.classList.contains("avoid-check")) return;
   const checkbox = e.target;
+  // CSS pointer-events:none already blocks the click while master-locked,
+  // but a scripted checkbox.click() or a keyboard toggle could still fire
+  // — revert and bail before any DB write.
+  if (document.body.classList.contains("master-locked")) {
+    checkbox.checked = !checkbox.checked;
+    return;
+  }
   const tr = checkbox.closest("tr");
   const personId = tr.dataset.person;
   const value = checkbox.checked;
+  // Confirm before marking someone Avoid — this hides them from every
+  // future Ledger Sheet (see peopleForCurrentFunction in app.js), so an
+  // accidental click on the wrong row shouldn't be a silent one-way write.
+  // Uncheck is confirmed too, since it changes their visibility across
+  // every function's sheet.
+  const person = allPeople.find((p) => p.id === personId);
+  const label = person?.name || person?.name_en || "this member";
+  const prompt = value
+    ? `Mark "${label}" as no longer active?\n\nThey'll be hidden from every current and future function's Ledger Sheet (except sheets where they already have a saved row).`
+    : `Restore "${label}" to the active member list?\n\nThey'll reappear on every function's Ledger Sheet that allows their Type.`;
+  if (!window.confirm(prompt)) {
+    checkbox.checked = !value;
+    return;
+  }
   const { error } = await client.from("people").update({ avoid: value }).eq("id", personId);
   if (error) {
     setStatus("Error saving: " + error.message, true);
     checkbox.checked = !value;
     return;
   }
-  const p = allPeople.find((p) => p.id === personId);
-  if (p) p.avoid = value;
+  if (person) person.avoid = value;
   tr.classList.toggle("row-avoided", value);
   setStatus("Saved.", false);
 });
 
-// Without this, clicking the lock button while the field is still focused
-// shifts focus to the button first, firing the "save on Tab-away" (focusout)
-// handler before this click even runs — the field saves and re-locks, then
-// this click's own toggle logic immediately reopens it. Blocking the focus
-// shift means only this handler decides what happens.
-$("members-body").addEventListener("mousedown", (e) => {
-  if (e.target.closest(".lock-btn")) e.preventDefault();
-});
-
-$("members-body").addEventListener("click", (e) => {
-  const btn = e.target.closest(".lock-btn");
-  if (!btn) return;
-  e.stopPropagation();
-  const input = btn.previousElementSibling;
-  if (input.readOnly) {
-    unlockInput(input, btn);
-  } else {
-    commitCell(input, btn);
-  }
-});
-
-// Enter commits without needing to leave the field.
+// Enter commits without needing to leave the field (blur then also fires,
+// but commitCell's dirty-check makes the second call a cheap no-op).
 $("members-body").addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   const input = e.target.closest(".cell-input");
   if (!input || input.readOnly) return;
   e.preventDefault();
-  commitCell(input);
+  input.blur();
 });
 
 // Tab/click to another field.
@@ -479,13 +521,18 @@ $("members-body").addEventListener("focusout", (e) => {
 });
 
 // Safari doesn't fire blur/focusout when clicking non-interactive elements
-// (blank space, plain text, etc.), so also catch clicks anywhere outside the
-// cell's own input+button pair at the document level.
+// (blank space, plain text, etc.), so also catch clicks anywhere outside
+// the currently-focused cell at the document level. Only the focused input
+// needs committing — every other cell is either already saved (via a prior
+// focusout) or unchanged, and commitCell's dirty-check would no-op anyway.
+// isInteractiveTarget filter (shared.js) skips clicks on filters/pills/
+// buttons/links so tapping them doesn't accidentally short-circuit focus.
 document.addEventListener("click", (e) => {
-  document.querySelectorAll(".cell-input.unlocked").forEach((input) => {
-    const wrapper = input.closest(".cell-flex");
-    if (wrapper && !wrapper.contains(e.target)) commitCell(input);
-  });
+  if (isInteractiveTarget(e.target)) return;
+  const focused = document.activeElement;
+  if (!focused || !focused.classList?.contains("cell-input") || focused.readOnly) return;
+  const wrapper = focused.closest(".cell-flex");
+  if (wrapper && !wrapper.contains(e.target)) commitCell(focused);
 });
 
 loadMembers();

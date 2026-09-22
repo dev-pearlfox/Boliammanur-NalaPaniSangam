@@ -1,23 +1,40 @@
 <!doctype html>
-<html lang="en">
+<html lang="ta">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="போளியம்மனூர் திருப்பணி சங்கம் - Functions List and expenses ledger for Boliammanur Nalapani Sangam." />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta name="theme-color" content="#8b1e1e" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="போளியம்மனூர் திருப்பணி சங்கம் - Functions" />
+<meta property="og:description" content="Function expenses ledger for Boliammanur Nalapani Sangam." />
+<meta property="og:image" content="https://boliammanur.pearlfox.io/function-expenses/logo-emblem-only.png" />
+<meta property="og:url" content="https://boliammanur.pearlfox.io/function-expenses/" />
 <title>போளியம்மனூர் திருப்பணி சங்கம்</title>
-<link rel="stylesheet" href="style.css?v=20260812c" />
+<link rel="icon" href="logo-emblem-only.png" type="image/png" />
+<link rel="apple-touch-icon" href="logo-emblem-only.png" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="style.css?v=20260921c" />
 </head>
 <body>
 
+<noscript>
+  <div style="padding:16px; text-align:center; background:#8b1e1e; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    இந்த தளத்திற்கு JavaScript தேவை. உலாவி அமைப்புகளில் JavaScript-ஐ இயக்கவும். &nbsp;/&nbsp; This site needs JavaScript to work. Please enable JavaScript in your browser and reload.
+  </div>
+</noscript>
+
 <div id="gate">
   <div class="card">
-    <img src="logo-thirupani-sangam.png" alt="போளியம்மனூர் திருப்பணி சங்கம்" class="gate-logo" />
-    <p style="color:var(--muted); margin:-6px 0 8px; font-size:2rem;">Functions List</p>
+    <img src="logo-thirupani-sangam.png" alt="போளியம்மனூர் திருப்பணி சங்கம்" class="gate-logo" width="512" height="512" fetchpriority="high" />
+    <p class="gate-subtitle">Functions List</p>
     <form id="gate-form">
       <label>Password
-        <input type="password" id="gate-password" required autofocus />
+        <input type="password" id="gate-password" required autofocus autocomplete="current-password" />
       </label>
       <button type="submit">Unlock</button>
-      <p class="status error" id="gate-status"></p>
+      <p class="status error" id="gate-status" role="alert" aria-live="polite"></p>
     </form>
   </div>
 </div>
@@ -25,7 +42,7 @@
 <div id="app" class="hidden">
   <div class="sticky-top-stack">
     <header>
-      <h1><span class="header-logo-container"><img src="logo-emblem-only.png" alt="" class="header-logo-main" /></span><span class="header-title-text">போளியம்மனூர் திருப்பணி சங்கம்</span></h1>
+      <h1><span class="header-logo-container"><img src="logo-emblem-only.png" alt="" role="presentation" class="header-logo-main" width="128" height="128" /></span><span class="header-title-text">போளியம்மனூர் திருப்பணி சங்கம்</span></h1>
     </header>
 
     <div class="sticky-top-inner">
@@ -51,23 +68,23 @@
           <thead>
             <tr><th>S.No</th><th>பெயர்</th><th>Name</th><th>Mobile Number</th><th>சந்தா</th><th>அசல்</th><th>வட்டி</th><th>தொகை</th><th>மொத்தம்</th><th>குறிப்பு</th></tr>
             <tr class="filter-row">
-              <td><input type="text" id="filter-sno" class="filter-input" placeholder="Filter" /></td>
-              <td><input type="text" id="filter-name" class="filter-input" placeholder="Filter" /></td>
-              <td><input type="text" id="filter-name-en" class="filter-input" placeholder="Filter" /></td>
-              <td><input type="text" id="filter-mobile" class="filter-input" placeholder="Filter" /></td>
+              <td><input type="text" id="filter-sno" class="filter-input" placeholder="Filter" aria-label="Filter by S.No" /></td>
+              <td><input type="text" id="filter-name" class="filter-input" placeholder="Filter" aria-label="Filter by Tamil name (பெயர்)" /></td>
+              <td><input type="text" id="filter-name-en" class="filter-input" placeholder="Filter" aria-label="Filter by English name" /></td>
+              <td><input type="text" id="filter-mobile" class="filter-input" placeholder="Filter" aria-label="Filter by mobile number" /></td>
               <td>
                 <label for="filter-santha" class="sr-only">Filter by சந்தா</label>
-                <select id="filter-santha" class="filter-input">
+                <select id="filter-santha" class="filter-input" aria-label="Filter by சந்தா payment status">
                   <option value="">அனைத்தும்</option>
                   <option value="paid">செலுத்தியவர்</option>
                   <option value="unpaid">செலுத்தாதவர்</option>
                 </select>
               </td>
-              <td><input type="text" id="filter-asal" class="filter-input" placeholder="Filter" /></td>
-              <td><input type="text" id="filter-vatti" class="filter-input" placeholder="Filter" /></td>
-              <td><input type="text" id="filter-thogai" class="filter-input" placeholder="Filter" /></td>
-              <td><input type="text" id="filter-total" class="filter-input" placeholder="Filter" /></td>
-              <td><input type="text" id="filter-paid" class="filter-input" placeholder="Filter" /></td>
+              <td><input type="text" id="filter-asal" class="filter-input" placeholder="Filter" aria-label="Filter by அசல் (principal)" /></td>
+              <td><input type="text" id="filter-vatti" class="filter-input" placeholder="Filter" aria-label="Filter by வட்டி (interest)" /></td>
+              <td><input type="text" id="filter-thogai" class="filter-input" placeholder="Filter" aria-label="Filter by தொகை (amount)" /></td>
+              <td><input type="text" id="filter-total" class="filter-input" placeholder="Filter" aria-label="Filter by மொத்தம் (total)" /></td>
+              <td><input type="text" id="filter-paid" class="filter-input" placeholder="Filter" aria-label="Filter by குறிப்பு (note)" /></td>
             </tr>
           </thead>
         </table>
@@ -83,21 +100,21 @@
         <tbody id="sheet-body"></tbody>
         <tfoot>
           <tr id="sheet-new-row">
-            <td><input type="number" id="new-member-no" min="1" placeholder="No." disabled /></td>
-            <td><input type="text" id="new-name" placeholder="புதிய பெயரை உள்ளிடவும்..." /></td>
-            <td><input type="text" id="new-name-en" placeholder="Name" /></td>
-            <td><input type="text" id="new-mobile" placeholder="Mobile" inputmode="numeric" pattern="[0-9]*" disabled /></td>
+            <td><input type="number" id="new-member-no" min="1" placeholder="No." aria-label="New member S.No" disabled /></td>
+            <td><input type="text" id="new-name" placeholder="புதிய பெயரை உள்ளிடவும்..." aria-label="New member Tamil name" /></td>
+            <td><input type="text" id="new-name-en" placeholder="Name" aria-label="New member English name" /></td>
+            <td><input type="tel" id="new-mobile" placeholder="Mobile" inputmode="numeric" pattern="[0-9]*" aria-label="New member mobile number" disabled /></td>
             <td>
               <div class="santha-cell">
-                <input type="checkbox" id="new-santha-check" disabled />
+                <input type="checkbox" id="new-santha-check" aria-label="Toggle சந்தா paid" disabled />
                 <span class="santha-amount" id="new-santha-amount">0</span>
               </div>
             </td>
-            <td><input type="text" id="new-asal" placeholder="0" inputmode="numeric" pattern="[0-9]*" disabled /></td>
-            <td><input type="text" id="new-vatti" placeholder="0" inputmode="numeric" pattern="[0-9]*" disabled /></td>
-            <td><input type="text" id="new-thogai" placeholder="0" inputmode="numeric" pattern="[0-9]*" disabled /></td>
+            <td><input type="text" id="new-asal" placeholder="0" inputmode="numeric" pattern="[0-9]*" aria-label="அசல் (principal)" disabled /></td>
+            <td><input type="text" id="new-vatti" placeholder="0" inputmode="numeric" pattern="[0-9]*" aria-label="வட்டி (interest)" disabled /></td>
+            <td><input type="text" id="new-thogai" placeholder="0" inputmode="numeric" pattern="[0-9]*" aria-label="தொகை (amount)" disabled /></td>
             <td class="total-cell">0</td>
-            <td><input type="text" id="new-paid" placeholder="குறிப்பு" disabled /></td>
+            <td><input type="text" id="new-paid" placeholder="குறிப்பு" aria-label="குறிப்பு (note)" disabled /></td>
           </tr>
           <tr id="new-type-row" class="hidden">
             <td colspan="10">
@@ -119,7 +136,10 @@
   </main>
 
   <div class="totals-banner" id="totals-banner">
-    <a href="members.html" class="header-link-btn">போளியம்மனூர் உறுப்பினர்கள்</a>
+    <div class="banner-left-group" id="banner-left-group">
+      <a href="members.html" class="header-link-btn">போளியம்மனூர் உறுப்பினர்கள்</a>
+      <button type="button" id="logout-btn" class="header-link-btn logout-btn" aria-label="Sign out">வெளியேறு</button>
+    </div>
     <div class="totals-track" id="totals-track">
       <div class="totals-col" data-col="5"><span class="totals-value" id="totals-santha">0</span></div>
       <div class="totals-col" data-col="6"><span class="totals-value" id="totals-asal">0</span></div>
@@ -131,9 +151,9 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="shared.js?v=20260811a"></script>
-<script src="app.js?v=20260812c"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" defer crossorigin="anonymous"></script>
+<script src="supabase-config.js?v=20260921c" defer></script>
+<script src="shared.js?v=20260921c" defer></script>
+<script src="app.js?v=20260921c" defer></script>
 </body>
 </html>

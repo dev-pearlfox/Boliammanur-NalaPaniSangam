@@ -1,86 +1,34 @@
 <!doctype html>
-<html lang="en">
+<html lang="ta">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="போளியம்மனூர் திருப்பணி சங்கம் - Members roster for Boliammanur Nalapani Sangam." />
+<meta name="referrer" content="strict-origin-when-cross-origin" />
+<meta name="theme-color" content="#8b1e1e" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="போளியம்மனூர் உறுப்பினர்கள் - Members" />
+<meta property="og:description" content="Members roster for Boliammanur Nalapani Sangam." />
+<meta property="og:image" content="https://boliammanur.pearlfox.io/function-expenses/logo-emblem-only.png" />
+<meta property="og:url" content="https://boliammanur.pearlfox.io/function-expenses/members.html" />
 <title>போளியம்மனூர் உறுப்பினர்கள் — போளியம்மனூர் திருப்பணி சங்கம்</title>
-<link rel="stylesheet" href="style.css?v=20260812c" />
+<link rel="icon" href="logo-emblem-only.png" type="image/png" />
+<link rel="apple-touch-icon" href="logo-emblem-only.png" />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<link rel="stylesheet" href="style.css?v=20260921c" />
 </head>
-<!--
-  HEART LOGIC INDEX — members.html — do not change any of the following
-  without asking first (warn "Warning: Heart Logic" and get explicit
-  permission before touching any of it). Each of these was arrived at after
-  a real, measured problem — reverting to something that "looks simpler"
-  reintroduces the original bug. Full reasoning for each lives as a comment
-  at its actual code location; this is the index.
-
-  1. .sticky-top-stack (style.css) — header + .members-filter-card +
-     .members-thead-wrap share ONE sticky container instead of each being
-     independently sticky. Independent sticky + JS-measured offsets caused
-     a real two-stage stutter (one piece shrank a frame before its
-     neighbor's position updated).
-  2. transform:scale() vs padding/font-size for shrink animations
-     (header h1, .members-filter-card in style.css) — transform is
-     compositor-only (no forced layout recalc every frame); padding/
-     font-size transitions do force it, and cost scales with total page
-     size. The table's own header/filter row is the ONE exception, left on
-     padding/font-size deliberately — switching it to transform breaks
-     column alignment with .members-tbody-wrap.
-  3. header h1 uses transform:scale(), never font-size (style.css) —
-     animating font-size on wrapping text causes a discrete (unsmoothable)
-     jump exactly when it collapses from 2 lines to 1.
-  4. syncPillsCardCollapse() measures card.offsetHeight directly
-     (members.js), not the parent's auto-computed height — a
-     negative margin-bottom on a width-constrained element doesn't reduce
-     the parent's height correctly (confirmed on the real page, root cause
-     never fully isolated).
-  5. .members-thead-wrap / .members-tbody-wrap / .members-table-card carry
-     their own border/radius/shadow directly, no .card wrapper (style.css)
-     — the "no container" spreadsheet look. overflow:hidden on both
-     wrappers (not just overflow-x) is what actually rounds the corners,
-     since border-radius directly on a <th>/<td> is unreliable under
-     border-collapse:collapse.
-  6. .sticky-top-inner uses the exact same max-width:1320px/margin:auto/
-     padding container <main> uses (style.css) — not similar values, the
-     literal same mechanism, so the pills bar/spreadsheet header
-     structurally can't drift out of alignment with .members-table-card.
-     An earlier version computed width via max-width:min(calc(...),1288px)
-     directly on .members-thead-wrap — verified correct in every automated
-     check across two browser engines, but intermittently rendered
-     flush-left on a real device, fixed by reload.
-  7. table.members-table column widths are literal fixed px (style.css,
-     already marked HEART LOGIC there) — do not stretch to fill wide
-     screens. A percentage-based stretch version was built and tested, then
-     explicitly reverted.
-  8. table.sheet tbody odd/even row backgrounds are explicit var(--surface)
-     / var(--surface-2) (style.css), not left transparent — the table sits
-     directly on the page background now (no white card behind it), so
-     transparent showed the page's own faint cream tint instead of white.
-  9. .pill-row (members filter buttons) is nowrap + overflow-x:auto
-     (style.css), never wraps to multiple lines — wrapping split the
-     shared rounded outline unevenly. members.js scrolls the clicked pill
-     to center on click so neighbors peek on both sides on narrow screens.
-  10. style.css / shared.js / members.js are loaded with a ?v=... cache-
-      busting query string (this file, and the same three files' equivalents
-      in index.html) — browsers repeatedly served a stale cached copy after
-      a real deploy until a manual hard refresh, which on index.html once
-      surfaced as a much worse symptom than stale styling: a stale app.js
-      referencing an element id that had been renamed in a restructure
-      silently threw and aborted before the ledger rows ever rendered,
-      leaving only the static header row visible with no data — bump the
-      version string on every future change to any of these three files, on
-      both pages, every time.
-  11. Deployment: this file has two homes — the boliammanur-functions repo
-      (source) and the eagleview-site repo (mirror, actually served at
-      newmantech.in) — every change needs pushing to BOTH, verified by
-      fetching the live URL directly afterward, not just trusting the push
-      succeeded.
--->
+<!-- Heart Logic: see HEART_LOGIC.md before changing sticky/scale/cache-bust/deployment logic. -->
 <body>
+
+<noscript>
+  <div style="padding:16px; text-align:center; background:#8b1e1e; color:#fff; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+    இந்த தளத்திற்கு JavaScript தேவை. உலாவி அமைப்புகளில் JavaScript-ஐ இயக்கவும். &nbsp;/&nbsp; This site needs JavaScript to work. Please enable JavaScript in your browser and reload.
+  </div>
+</noscript>
 
 <div class="sticky-top-stack">
   <header>
-    <h1>போளியம்மனூர் உறுப்பினர்கள்</h1>
+    <h1><span class="header-logo-container"><img src="logo-emblem-only.png" alt="" role="presentation" class="header-logo-main" width="128" height="128" /></span><span class="header-title-text">போளியம்மனூர் உறுப்பினர்கள்</span></h1>
   </header>
 
   <div class="sticky-top-inner">
@@ -110,7 +58,7 @@
                 <option value="Others">Others</option>
               </select>
             </td>
-            <td></td>
+            <td aria-hidden="true"></td>
           </tr>
         </thead>
       </table>
@@ -148,12 +96,16 @@
 </main>
 
 <div class="totals-banner totals-banner-simple">
-  <a href="index.html" class="header-link-btn">← Back</a>
+  <div class="banner-left-group">
+    <a href="index.html" class="header-link-btn">← Back</a>
+    <button type="button" id="master-lock-btn" class="header-link-btn master-lock-btn" aria-label="Unlock editing" aria-pressed="false" title="Unlock editing">✏️</button>
+    <button type="button" id="logout-btn" class="header-link-btn logout-btn" aria-label="Sign out">வெளியேறு</button>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="shared.js?v=20260811a"></script>
-<script src="members.js?v=20260811a"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" defer crossorigin="anonymous"></script>
+<script src="supabase-config.js?v=20260921c" defer></script>
+<script src="shared.js?v=20260921c" defer></script>
+<script src="members.js?v=20260921c" defer></script>
 </body>
 </html>
