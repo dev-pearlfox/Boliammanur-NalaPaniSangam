@@ -8,14 +8,15 @@
 <meta name="theme-color" content="#8b1e1e" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="போளியம்மனூர் திருப்பணி சங்கம் - Functions" />
-<meta property="og:description" content="Function expenses ledger for Boliammanur Nalapani Sangam." />
+<meta property="og:description" content="Accounts ledger for Boliammanur Nalapani Sangam." />
 <meta property="og:image" content="https://boliammanur.pearlfox.io/function-expenses/logo-emblem-only.png" />
 <meta property="og:url" content="https://boliammanur.pearlfox.io/function-expenses/" />
 <title>போளியம்மனூர் திருப்பணி சங்கம்</title>
 <link rel="icon" href="logo-emblem-only.png" type="image/png" />
 <link rel="apple-touch-icon" href="logo-emblem-only.png" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="stylesheet" href="style.css?v=20260921c" />
+<link rel="stylesheet" href="style.css?v=20261105q" />
+<link rel="stylesheet" href="expenses.css?v=20261105q" />
 </head>
 <body>
 
@@ -94,6 +95,33 @@
 
   <main>
 
+    <section class="expense-card hidden" id="expense-card">
+      <div class="card expense-panel">
+        <div class="table-wrap">
+          <table class="expense-table">
+            <thead><tr><th>S.No</th><th>செலவு</th><th>தொகை</th><th>குறிப்பு</th></tr></thead>
+            <tbody id="expense-body"></tbody>
+            <tfoot><tr><td></td><td>மொத்த செலவு</td><td id="expense-total">0</td><td></td></tr></tfoot>
+          </table>
+        </div>
+        <p class="status" id="expense-status"></p>
+      </div>
+    </section>
+
+    <section class="expense-card income-card hidden" id="income-card">
+      <div class="card expense-panel">
+        <div class="table-wrap">
+          <table class="income-table">
+            <thead id="income-head"></thead>
+            <tbody id="income-body"></tbody>
+            <tfoot id="income-foot"></tfoot>
+          </table>
+        </div>
+        <p class="income-add-row"><button type="button" class="secondary" id="income-add">+ புதிய வரி</button></p>
+        <p class="status" id="income-status"></p>
+      </div>
+    </section>
+
     <section class="card sheet-table-card">
       <div class="table-wrap sheet-tbody-wrap" id="sheet-tbody-wrap">
       <table class="sheet wide">
@@ -139,6 +167,7 @@
     <div class="banner-left-group" id="banner-left-group">
       <a href="members.html" class="header-link-btn">போளியம்மனூர் உறுப்பினர்கள்</a>
       <button type="button" id="logout-btn" class="header-link-btn logout-btn" aria-label="Sign out">வெளியேறு</button>
+      <a href="../functions-dashboard/index.html" class="header-link-btn">Dashboard &rarr;</a>
     </div>
     <div class="totals-track" id="totals-track">
       <div class="totals-col" data-col="5"><span class="totals-value" id="totals-santha">0</span></div>
@@ -152,8 +181,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" defer crossorigin="anonymous"></script>
-<script src="supabase-config.js?v=20260921c" defer></script>
-<script src="shared.js?v=20260921c" defer></script>
-<script src="app.js?v=20260921c" defer></script>
+<script src="supabase-config.js?v=20261105q" defer></script>
+<script src="shared.js?v=20261105q" defer></script>
+<script src="../expense-categories.js?v=20261105q" defer></script>
+<script src="../income-categories.js?v=20261105q" defer></script>
+<script src="../function-rules.js?v=20261105q" defer></script>
+<script src="expenses.js?v=20261105q" defer></script>
+<script src="income.js?v=20261105q" defer></script>
+<script src="app.js?v=20261105q" defer></script>
 </body>
 </html>

@@ -506,7 +506,8 @@ body.is-scrolled .sheet-title-inner > span.has-overflow {
   transition: background 0.15s ease, color 0.15s ease;
 }
 
-.members-toggle:hover { background: var(--accent); color: #fff; }
+.members-toggle:hover:not(:disabled) { background: var(--accent); color: #fff; }
+.members-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .members-toggle.active {
   background: linear-gradient(90deg, var(--accent), var(--accent-2));
@@ -1011,7 +1012,10 @@ body.is-scrolled .sheet-filter-card .pill-row.has-overflow {
 .pills-inline { display: flex; flex-direction: column; gap: 10px; }
 .pill-divider { width: 100%; height: 1px; background: var(--border); }
 .pill-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.pill-label { font-weight: 700; color: #9a3412; font-size: 0.95rem; white-space: nowrap; }
+.pill-label, .title-group-label { font-weight: 700; color: #9a3412; font-size: 0.95rem; white-space: nowrap; }
+/* வரவு: / செலவு: groups in #sheet-title (app.js updateSheetTitle): வரவு stays with its own buttons; when a
+   group is too wide for the screen its buttons wrap inside the group, not across the other group. */
+.title-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* ---------- Members page: per-cell lock/unlock ---------- */
 

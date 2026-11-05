@@ -1,0 +1,53 @@
+/* செலவு (expense) table — see expenses.js. Kept out of style.css (already huge, and its sticky/shrink rules are
+   protected). Deliberately NOT table.sheet: that one has fixed column widths for the 10-column ledger. */
+/* .expense-card is only an invisible footprint: the same 1252px centred box #sheet-title and .sheet-table-card use.
+   The visible card, .expense-panel, is centred inside it (so centred on the screen); on a phone it fills the width. */
+.expense-card { width: 1252px; max-width: 100%; margin: 0 auto; }
+.expense-panel { max-width: 760px; margin: 0 auto; }
+.expense-table { width: 100%; border-collapse: collapse; }
+.expense-table th:nth-child(1), .expense-table td:nth-child(1) { width: 56px; text-align: center; }
+.expense-table th:nth-child(3), .expense-table td:nth-child(3) { width: 140px; }
+.expense-table td:nth-child(2) { font-weight: 700; color: #9a3412; white-space: nowrap; }
+.expense-table td input { width: 100%; }
+.expense-table td:nth-child(4) input { min-width: 140px; }   /* a note box must stay usable on a phone */
+
+@media (max-width: 640px) {
+  .expense-panel { padding: 12px; }
+  .expense-table th:nth-child(1), .expense-table td:nth-child(1) { width: 32px; }
+  .expense-table th:nth-child(3), .expense-table td:nth-child(3) { width: 96px; }
+  .expense-table th, .expense-table td { padding: 6px 4px; }
+  /* Everything must fit the card without sideways scrolling: the name wraps, the note box shrinks. */
+  .expense-table td:nth-child(2) { white-space: normal; font-size: 0.85rem; }
+  .expense-table td:nth-child(4) input { min-width: 90px; }
+}
+.expense-table tfoot td { font-weight: 800; border-top: 2px solid var(--border); border-bottom: 0; }
+.expense-table tr.row-saved td { background: var(--accent-soft); }
+
+/* Expense / income views: the members sheet is hidden, so its column totals in the bottom banner would float over nothing.
+   The buttons in the banner (members, sign out, dashboard) stay. */
+body.view-expenses .totals-track, body.view-income .totals-track { visibility: hidden; }
+
+/* வரவு extras (நன்கொடை, ஏலம், முந்தைய இருப்பு) — see income.js. Same centred footprint as செலவு above (.expense-card);
+   the panel is wider because these tables have up to six columns (they scroll sideways on a phone, like the members
+   sheet). Columns are styled by class (ic-<field>, set in income.js), so each kind can pick its own columns. */
+.income-card .expense-panel { max-width: 1100px; }
+.income-table { width: 100%; border-collapse: collapse; }
+.income-table .ic-sno { width: 56px; text-align: center; }
+.income-table .ic-del { width: 48px; text-align: center; }
+.income-table td input { width: 100%; }
+.income-table .ic-date { min-width: 150px; }
+.income-table .ic-name, .income-table .ic-nameEn, .income-table .ic-note { min-width: 160px; }
+.income-table .ic-phone { min-width: 150px; }
+.income-table .ic-amount { min-width: 110px; width: 130px; }
+.income-table tfoot td { font-weight: 800; border-top: 2px solid var(--border); border-bottom: 0; white-space: nowrap; }
+.income-table tr.row-saved td { background: var(--accent-soft); }
+button.income-del { background: transparent; box-shadow: none; color: #9a3412; min-height: 0; padding: 4px 10px; font-size: 1.3rem; line-height: 1; border-radius: 8px; }
+button.income-del:hover { background: var(--accent-soft); }
+.income-add-row { text-align: center; margin: 14px 0 0; }
+
+@media (max-width: 640px) {
+  .income-table .ic-sno { display: none; }   /* no room for S.No on a phone */
+  .income-table .ic-del { width: 36px; }
+  .income-table th, .income-table td { padding: 6px 4px; }
+  button.income-del { padding: 4px 6px; }
+}

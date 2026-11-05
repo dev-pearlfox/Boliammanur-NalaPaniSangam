@@ -487,26 +487,43 @@ function updateSheetTitle() {
   // drifts; .sheet-title-inner is the part that actually scales/shrinks
   // once compact.
   $("sheet-title").querySelector(".sheet-title-inner").innerHTML =
-    `<span>${escapeHtml(title)}</span> <button type="button" id="toggle-members-btn" class="members-toggle ${sheetCollapsed ? "" : "active"}">உறுப்பினர்கள் - ${peopleForCurrentFunction().length}</button>`;
+    `<span>${escapeHtml(title)}</span>` +
+    // வரவு (income) is a label with its buttons in one group, so the label never wraps away from them. The
+    // group is a <div>/<strong>, not a direct-child <span>, on purpose: style.css and syncPillRowOverflow
+    // treat the title's direct-child <span> as the title TEXT.
+    `<div class="title-group"><strong class="title-group-label">வரவு:</strong>` +
+      `<button type="button" id="toggle-members-btn" class="members-toggle ${sheetCollapsed ? "" : "active"}">உறுப்பினர்கள் - ${peopleForCurrentFunction().length}</button>` +
+      incomeButtonsHtml() +   // income.js: நன்கொடை, ஏலம், முந்தைய இருப்பு
+    `</div>` +
+    // செலவு (expense): one button; its table (expenses.js) replaces the members sheet while it is open.
+    expenseButtonHtml();
   // Respect the user's collapse toggle across re-renders — updateSheetTitle
   // is called after adding a row / switching function / saving, and used to
   // unconditionally un-hide the sheet, popping it back open behind the
   // user's back. Now driven by sheetCollapsed state instead.
-  $("sheet-tbody-wrap").classList.toggle("hidden", sheetCollapsed);
-  $("sheet-thead-wrap").classList.toggle("hidden", sheetCollapsed);
+  applySheetVisibility();
+  syncExpenseView();   // expenses.js: keeps the செலவு table in step with the selected function
+  syncIncomeView();    // income.js: same for the நன்கொடை / ஏலம் / முந்தைய இருப்பு tables
+}
+
+// The members sheet is hidden when the user collapsed it OR the செலவு table or an income table is showing instead. .sheet-thead-wrap
+// lives in .sticky-top-stack and .sheet-tbody-wrap in <main> (see that HEART LOGIC comment in style.css), so both
+// need toggling together. Also sets the active look of the members and செலவு buttons.
+function applySheetVisibility() {
+  const hide = sheetCollapsed || expenseOpen || !!incomeView;
+  $("sheet-tbody-wrap").classList.toggle("hidden", hide);
+  $("sheet-thead-wrap").classList.toggle("hidden", hide);
+  $("toggle-members-btn")?.classList.toggle("active", !hide);
+  $("expense-btn")?.classList.toggle("active", expenseOpen);
 }
 
 $("sheet-title").addEventListener("click", (e) => {
-  const btn = e.target.closest("#toggle-members-btn");
-  if (!btn) return;
-  // .sheet-thead-wrap lives in .sticky-top-stack now (see that HEART LOGIC
-  // comment in style.css), separate from .sheet-tbody-wrap in <main> — both
-  // need toggling together to fully collapse/restore the table, matching
-  // the original single-wrap behavior before the split.
-  sheetCollapsed = !sheetCollapsed;
-  $("sheet-tbody-wrap").classList.toggle("hidden", sheetCollapsed);
-  $("sheet-thead-wrap").classList.toggle("hidden", sheetCollapsed);
-  btn.classList.toggle("active", !sheetCollapsed);
+  if (!e.target.closest("#toggle-members-btn")) return;
+  // From the செலவு or an income view this button just goes back to the members sheet; otherwise it
+  // collapses/expands the sheet as before.
+  sheetCollapsed = (expenseOpen || incomeView) ? false : !sheetCollapsed;
+  setIncomeView(null);     // income.js: leaves an income view
+  setExpenseOpen(false);   // expenses.js: leaves the செலவு view and runs applySheetVisibility()
   if (!sheetCollapsed) alignTotalsBanner();
 });
 
@@ -596,13 +613,9 @@ function updateNewRowLock() {
 // existing ledger_entries row — that historical record stays visible.
 function peopleForCurrentFunction() {
   const f = functionsList.find((f) => f.id === selectedFunctionId);
-  const allowedType = f?.allowed_type || "All";
-  let filtered = allowedType === "All" ? people : people.filter((p) => p.type === allowedType);
-
-  const hasExistingEntry = new Set(ledgerEntries.map((e) => e.person_id));
-  filtered = filtered.filter((p) => !p.avoid || hasExistingEntry.has(p.id));
-
-  return filtered;
+  // The rule itself (type filter + "avoid" flag) lives in ../function-rules.js, shared with the dashboard.
+  // ledgerEntries here are already only this function's rows.
+  return eligiblePeople(people, f, ledgerEntries);
 }
 
 // சந்தா is a fixed price the admin sets per function (Dashboard) — members are
