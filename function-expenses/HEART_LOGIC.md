@@ -1,6 +1,7 @@
 # HEART LOGIC INDEX — function-expenses/
 
-**Applies to:** `index.html`, `members.html`, `style.css`, `app.js`, `members.js`, `shared.js`
+**Applies to:** `index.html`, `members.html`, `style.css`, `app.js`, `members.js`, `shared.js` (and `expenses.js`,
+`income.js`, `expenses.css`, which sit on top of it)
 
 Do not change any of the following without asking first (warn **"Warning: Heart
 Logic"** and get explicit permission before touching any of it). Each of these
@@ -63,8 +64,8 @@ it), so transparent showed the page's own faint cream tint instead of white.
 rounded outline unevenly. members.js scrolls the clicked pill to center on
 click so neighbors peek on both sides on narrow screens.
 
-## 10. Cache-busting `?v=...` on style.css / shared.js / members.js / app.js
-(both `members.html` and `index.html`) — browsers repeatedly served a stale
+## 10. Cache-busting `?v=...` on style.css / shared.js / members.js / app.js / expenses.js / income.js / expenses.css
+(both `members.html` and `index.html`, and the dashboard's files in its `index.html`) — browsers repeatedly served a stale
 cached copy after a real deploy until a manual hard refresh, which on
 `index.html` once surfaced as a much worse symptom than stale styling: a
 stale `app.js` referencing an element id that had been renamed in a
@@ -86,8 +87,9 @@ curl -s https://cdn.jsdelivr.net/npm/@supabase/supabase-js@NEW_VERSION/dist/umd/
 Or use https://www.srihash.org/. Forgetting to update the hash after a version
 bump = the page silently fails to load Supabase and nothing works.
 
-## 12. Deployment: two homes
-This file has two homes — the `boliammanur-functions` repo (source) and the
-`eagleview-site` repo (mirror, actually served at newmantech.in) — every
-change needs pushing to BOTH, verified by fetching the live URL directly
-afterward, not just trusting the push succeeded.
+## 12. Deployment: one repo, one home
+There is ONE repo, `Boliammanur-NalaPaniSangam` (GitHub account `dev-pearlfox`). GitHub Pages serves it from `main` at
+https://boliammanur.pearlfox.io (see `CNAME`), and it takes about a minute after a push. Both sites (`function-expenses/`
+and `functions-dashboard/`) and the shared root files deploy together. After a push, verify by fetching the live URL
+directly (e.g. `curl -s https://boliammanur.pearlfox.io/function-expenses/ | grep "v="`), not just by trusting the push.
+(An older version of this note described a second mirror repo served at newmantech.in; that no longer applies.)

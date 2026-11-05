@@ -8,6 +8,15 @@ function renderOverview() {
   $("ov-santha").textContent = money(all.income.santha);
   $("ov-vatti").textContent = money(all.income.vatti);
   $("ov-thogai").textContent = money(all.income.thogai);
+  // The extra வரவு tiles come from INCOME_KINDS. Carry-over money is not in the all-years வரவு, so its tile says so.
+  $("ov-extra-tiles").innerHTML = INCOME_KINDS.map((k) => {
+    const left = k.isCarryOver && all.income.carryNotCounted > 0;
+    const value = (all.income.extra[k.key] || 0) + (left ? all.income.carryNotCounted : 0);
+    return `<div class="tile"><div class="label">${escapeHtml(k.label)}${left ? " <small>(not in வரவு)</small>" : ""}</div><div class="value">${money(value)}</div></div>`;
+  }).join("");
+  $("ov-carry-note").textContent = all.income.carryNotCounted > 0
+    ? "Each function's row includes its முந்தைய இருப்பு, but this all-years வரவு leaves it out so the same money is not counted twice."
+    : "";
   $("ov-material").textContent = money(materials.reduce((s, m) => s + Number(m.cost || 0), 0));
 
   renderOverviewCharts(all);
@@ -37,7 +46,7 @@ function renderOverviewCharts(all) {
   let incomeSoFar = 0;
   let expenseSoFar = 0;
   const cumulative = perYear.map((s) => {
-    incomeSoFar += s.income.total;
+    incomeSoFar += incomeWithoutCarry(s.income);   // a running total across years must not count carried-over money again
     expenseSoFar += s.expense;
     return { income: incomeSoFar, expense: expenseSoFar };
   });
@@ -57,12 +66,7 @@ function renderOverviewCharts(all) {
     type: "bar",
     data: {
       labels: years,
-      datasets: [
-        { label: "Asal", data: perYear.map((s) => s.income.asal), backgroundColor: cssVar("--series-4"), borderRadius: 4 },
-        { label: "Santha", data: perYear.map((s) => s.income.santha), backgroundColor: cssVar("--series-1"), borderRadius: 4 },
-        { label: "Vatti", data: perYear.map((s) => s.income.vatti), backgroundColor: cssVar("--series-2"), borderRadius: 4 },
-        { label: "Thogai", data: perYear.map((s) => s.income.thogai), backgroundColor: cssVar("--series-3"), borderRadius: 4 },
-      ],
+      datasets: INCOME_PARTS.map((p) => ({ label: p.label, data: perYear.map((s) => p.amount(s.income)), backgroundColor: cssVar(p.color), borderRadius: 4 })),
     },
     options: stackedOptions(),
   });

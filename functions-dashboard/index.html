@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Income (வரவு), expenses (செலவு) and balance for Boliammanur Nalapani Sangam, overall and by year and function." />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="theme-color" content="#8b1e1e" />
@@ -15,7 +16,7 @@
 <link rel="icon" href="logo.png" type="image/png" />
 <link rel="apple-touch-icon" href="logo.png" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="stylesheet" href="style.css?v=20261105p" />
+<link rel="stylesheet" href="style.css?v=20261105s" />
 </head>
 <body>
 
@@ -71,8 +72,10 @@
         <div class="tile"><div class="label">Total Santha</div><div class="value" id="ov-santha">0</div></div>
         <div class="tile"><div class="label">Total Vatti</div><div class="value" id="ov-vatti">0</div></div>
         <div class="tile"><div class="label">Total Thogai</div><div class="value" id="ov-thogai">0</div></div>
+        <span id="ov-extra-tiles"></span>
         <div class="tile"><div class="label">Material Cost <small>(separate)</small></div><div class="value" id="ov-material">0</div></div>
       </div>
+      <p class="note" id="ov-carry-note"></p>
 
       <div class="card two-col">
         <div>
@@ -87,7 +90,7 @@
 
       <div class="card two-col">
         <div>
-          <h2>Asal / Santha / Vatti / Thogai by Year</h2>
+          <h2>வரவு by Type, by Year</h2>
           <div class="chart-wrap"><canvas id="chart-ov-components" role="img" aria-label="Stacked bar chart of Asal, Santha, Vatti and Thogai by year."></canvas></div>
         </div>
         <div>
@@ -150,6 +153,7 @@
         <div class="card">
           <h2>செலவு by category</h2>
           <div id="ex-expense-list"></div>
+          <p class="note" id="ex-carry-note"></p>
           <p class="note" id="ex-material-note"></p>
         </div>
       </div>
@@ -273,19 +277,20 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" defer crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" integrity="sha384-Sse/HDqcypGpyTDpvZOJNnG0TT3feGQUkF9H+mnRvic+LjR+K1NhTt8f51KIQ3v3" defer crossorigin="anonymous"></script>
-<script src="supabase-config.js?v=20261105p" defer></script>
-<script src="../expense-categories.js?v=20261105p" defer></script>
-<script src="../function-rules.js?v=20261105p" defer></script>
-<script src="core.js?v=20261105p" defer></script>
-<script src="data.js?v=20261105p" defer></script>
-<script src="charts.js?v=20261105p" defer></script>
-<script src="widgets.js?v=20261105p" defer></script>
-<script src="overview.js?v=20261105p" defer></script>
-<script src="compare.js?v=20261105p" defer></script>
-<script src="explore.js?v=20261105p" defer></script>
-<script src="unpaid.js?v=20261105p" defer></script>
-<script src="admin.js?v=20261105p" defer></script>
-<script src="print.js?v=20261105p" defer></script>
-<script src="app.js?v=20261105p" defer></script>
+<script src="supabase-config.js?v=20261105s" defer></script>
+<script src="../expense-categories.js?v=20261105s" defer></script>
+<script src="../income-categories.js?v=20261105s" defer></script>
+<script src="../function-rules.js?v=20261105s" defer></script>
+<script src="core.js?v=20261105s" defer></script>
+<script src="data.js?v=20261105s" defer></script>
+<script src="charts.js?v=20261105s" defer></script>
+<script src="widgets.js?v=20261105s" defer></script>
+<script src="overview.js?v=20261105s" defer></script>
+<script src="compare.js?v=20261105s" defer></script>
+<script src="explore.js?v=20261105s" defer></script>
+<script src="unpaid.js?v=20261105s" defer></script>
+<script src="admin.js?v=20261105s" defer></script>
+<script src="print.js?v=20261105s" defer></script>
+<script src="app.js?v=20261105s" defer></script>
 </body>
 </html>

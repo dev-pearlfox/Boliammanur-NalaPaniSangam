@@ -5,6 +5,8 @@
 // key once data exists. Labels and placeholders are wording and can be changed freely.
 // `columns` is the table, left to right. `field` is one of: date, name (Tamil name), nameEn (English name), phone,
 // amount, note. Each kind lists only the columns it needs (see FIELD_TYPES in function-expenses/income.js).
+// `isCarryOver: true` marks last year's leftover money. The dashboard counts it in வரவு/மீதி only when a single
+// year is selected; across several years it would count the same rupees twice (once when earned, once carried).
 const INCOME_KINDS = [
   { key: "donation", label: "நன்கொடை",              // gifts from people outside the member list
     totalLabel: "மொத்த நன்கொடை",
@@ -26,6 +28,7 @@ const INCOME_KINDS = [
       { field: "amount", label: "தொகை" },
     ] },
   { key: "carry-forward", label: "முந்தைய இருப்பு",   // money left over from last year's function
+    isCarryOver: true,
     totalLabel: "மொத்த முந்தைய இருப்பு",
     columns: [
       { field: "date", label: "தேதி" },

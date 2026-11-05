@@ -515,6 +515,7 @@ function applySheetVisibility() {
   $("sheet-thead-wrap").classList.toggle("hidden", hide);
   $("toggle-members-btn")?.classList.toggle("active", !hide);
   $("expense-btn")?.classList.toggle("active", expenseOpen);
+  alignTotalsBanner();   // the banner buttons move to the middle while the sheet is hidden, back to its edge when shown
 }
 
 $("sheet-title").addEventListener("click", (e) => {
@@ -728,6 +729,17 @@ function alignTotalsBanner() {
   const headerRow = document.querySelector("table.sheet thead tr:first-child");
   if (!headerRow) return;
   const ths = headerRow.querySelectorAll("th");
+  const leftGroup = document.querySelector(".totals-banner .banner-left-group");
+  const firstTh = ths[0];
+  // When the members sheet is not on screen (collapsed, or செலவு / an income table is showing) its header has no
+  // position (every rect reads 0), so pinning to it would push the buttons against the left edge of the screen.
+  // Centre them instead (.banner-centered in expenses.css).
+  const sheetShown = !!firstTh && firstTh.getClientRects().length > 0;
+  if (leftGroup) {
+    leftGroup.closest(".totals-banner").classList.toggle("banner-centered", !sheetShown);
+    if (!sheetShown) leftGroup.style.left = "";
+  }
+  if (!sheetShown) return;
   document.querySelectorAll("#totals-track .totals-col").forEach((col) => {
     const th = ths[Number(col.dataset.col) - 1];
     if (!th) return;
@@ -738,11 +750,7 @@ function alignTotalsBanner() {
   // Move the whole left-group (members-link + logout) as one unit, not
   // just the members-link — so the logout button sits next to its sibling
   // regardless of horizontal scroll, instead of drifting away.
-  const leftGroup = document.querySelector(".totals-banner .banner-left-group");
-  const firstTh = ths[0];
-  if (leftGroup && firstTh) {
-    leftGroup.style.left = firstTh.getBoundingClientRect().left + "px";
-  }
+  if (leftGroup) leftGroup.style.left = firstTh.getBoundingClientRect().left + "px";
 }
 window.addEventListener("resize", alignTotalsBanner);
 // #sheet-thead-wrap itself doesn't scroll horizontally (overflow:hidden —

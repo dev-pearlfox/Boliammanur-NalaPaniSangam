@@ -1,3 +1,9 @@
+-- HISTORICAL: this is the ORIGINAL first-day schema, kept only so the project's history makes sense.
+-- Do NOT run it on the live project: it is the old shared-password design (a `settings` table with a plain-text
+-- password, and check_password / set_password functions callable by anyone). The sites now sign in through
+-- Supabase Auth. To remove the old pieces from a live database run drop_old_password_gate.sql.
+-- For what is live today, see ../../README.md and rls_policies.sql.
+
 -- Boliammanur Functions / Dashboard schema
 -- Run this once in the Supabase SQL editor (Project -> SQL Editor -> New query).
 

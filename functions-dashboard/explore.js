@@ -56,15 +56,13 @@ function renderExplore() {
   $("ex-selection").textContent = "Showing " + selectionTitle();
   setHeroTiles("ex", s);
   $("ex-income-list").innerHTML = barList(
-    [
-      { label: "Asal", amount: s.income.asal },
-      { label: "Santha", amount: s.income.santha },
-      { label: "Vatti", amount: s.income.vatti },
-      { label: "Thogai", amount: s.income.thogai },
-    ].filter((i) => i.amount > 0),
+    INCOME_PARTS.map((p) => ({ label: p.label, amount: p.amount(s.income) })).filter((i) => i.amount > 0),
     s.income.total,
     "credit"
   );
+  $("ex-carry-note").textContent = s.income.carryNotCounted > 0
+    ? `முந்தைய இருப்பு ${money(s.income.carryNotCounted)} is not counted here: it is last year's money. Pick one year to include it.`
+    : "";
   $("ex-expense-list").innerHTML = barList(expenseItems(s.byCategory), s.expense, "expense");
   const materialCost = exploreMaterials.reduce((sum, m) => sum + Number(m.cost || 0), 0);
   $("ex-material-note").textContent = `Material usage for this selection: ${money(materialCost)} (tracked separately, not included in செலவு).`;

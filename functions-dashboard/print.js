@@ -5,10 +5,11 @@
 function printSummary(funcIds, title) {
   const s = summarize(funcIds);
   const row = (label, amount, tone = "") => `<tr><td>${escapeHtml(label)}</td><td class="num ${tone}">${money(amount)}</td></tr>`;
-  const incomeRows = [["Asal", s.income.asal], ["Santha", s.income.santha], ["Vatti", s.income.vatti], ["Thogai", s.income.thogai]]
+  const incomeRows = INCOME_PARTS.map((p) => [p.label, p.amount(s.income)])
     .filter(([, amount]) => amount > 0)
     .map(([label, amount]) => row(label, amount))
-    .join("");
+    .join("") +
+    (s.income.carryNotCounted > 0 ? `<tr><td colspan="2"><em>முந்தைய இருப்பு ${money(s.income.carryNotCounted)} not counted (several years selected).</em></td></tr>` : "");
   const expenseRows = expenseItems(s.byCategory).map((i) => row(i.label, i.amount)).join("");
   const functionRowsHtml = functionRows(funcIds)
     .map(({ f, s: fs }) => {

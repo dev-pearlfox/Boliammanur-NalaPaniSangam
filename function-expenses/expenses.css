@@ -30,24 +30,38 @@ body.view-expenses .totals-track, body.view-income .totals-track { visibility: h
 /* வரவு extras (நன்கொடை, ஏலம், முந்தைய இருப்பு) — see income.js. Same centred footprint as செலவு above (.expense-card);
    the panel is wider because these tables have up to six columns (they scroll sideways on a phone, like the members
    sheet). Columns are styled by class (ic-<field>, set in income.js), so each kind can pick its own columns. */
-.income-card .expense-panel { max-width: 1100px; }
+.income-card .expense-panel { max-width: none; }   /* the whole 1252px footprint; long Tamil names need the room */
 .income-table { width: 100%; border-collapse: collapse; }
-.income-table .ic-sno { width: 56px; text-align: center; }
-.income-table .ic-del { width: 48px; text-align: center; }
+.income-table .ic-sno { width: 48px; text-align: center; }
+.income-table .ic-del { width: 44px; text-align: center; }
 .income-table td input { width: 100%; }
 .income-table .ic-date { min-width: 150px; }
-.income-table .ic-name, .income-table .ic-nameEn, .income-table .ic-note { min-width: 160px; }
-.income-table .ic-phone { min-width: 150px; }
-.income-table .ic-amount { min-width: 110px; width: 130px; }
+.income-table .ic-name, .income-table .ic-nameEn { min-width: 180px; }
+.income-table .ic-note { min-width: 150px; }
+.income-table .ic-phone { min-width: 140px; }
+.income-table .ic-amount { min-width: 110px; width: 120px; }
 .income-table tfoot td { font-weight: 800; border-top: 2px solid var(--border); border-bottom: 0; white-space: nowrap; }
 .income-table tr.row-saved td { background: var(--accent-soft); }
 button.income-del { background: transparent; box-shadow: none; color: #9a3412; min-height: 0; padding: 4px 10px; font-size: 1.3rem; line-height: 1; border-radius: 8px; }
 button.income-del:hover { background: var(--accent-soft); }
 .income-add-row { text-align: center; margin: 14px 0 0; }
+.income-swipe-hint { display: none; margin: 0 0 6px; text-align: center; font-size: 0.78rem; color: var(--muted); }
 
 @media (max-width: 640px) {
+  .income-swipe-hint { display: block; }   /* these tables are wider than a phone: say so */
   .income-table .ic-sno { display: none; }   /* no room for S.No on a phone */
   .income-table .ic-del { width: 36px; }
   .income-table th, .income-table td { padding: 6px 4px; }
   button.income-del { padding: 4px 6px; }
+}
+
+/* Bottom banner buttons (members link, sign out, Dashboard).
+   - While the members sheet is hidden, app.js adds .banner-centered: the group sits in the middle of the bar.
+   - A real <button> picks up the global min-height:44px (the links do not), which made வெளியேறு taller than the bar.
+   - Three buttons did not fit a 360-390px phone (Dashboard was clipped), so they shrink a little there. */
+.totals-banner.banner-centered .banner-left-group { left: 50%; transform: translate(-50%, -50%); }
+.totals-banner button.header-link-btn { min-height: 0; }
+@media (max-width: 420px) {
+  .totals-banner .header-link-btn { font-size: 0.68rem; padding: 6px 8px; }
+  .totals-banner .banner-left-group { gap: 4px; }
 }

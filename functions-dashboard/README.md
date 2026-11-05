@@ -1,45 +1,57 @@
-# Boliammanur Functions + Dashboard — Setup
+# Boliammanur Nala Pani Sangam: Accounts + Dashboard
 
-Two static websites sharing one Supabase database:
-- `function-expenses/` — data entry: add functions/years, fill in an editable ledger sheet (Asal/Santha/Vatti/Thogai/Total/Paid per person, autosaves per cell), record materials
-- `functions-dashboard/` — analytics + shared password management
+Two static websites in one repo, sharing one Supabase database. No build step: open the HTML files in a browser.
+Live at https://boliammanur.pearlfox.io (GitHub Pages, deployed from `main`).
 
-## 1. Create the Supabase project
-1. Go to supabase.com, sign up free, create a new project.
-2. Once it's ready, open **SQL Editor → New query**, paste the contents of `supabase/schema.sql`, and run it.
-   - This creates the tables, security rules, and the password-check functions.
-   - Before running, edit the line `insert into settings (id, password) values (1, 'changeme123')` to set your real starting password.
-3. Go to **Project Settings → API**. Copy the **Project URL** and the **anon public key**.
+| Folder | What it is |
+|---|---|
+| `function-expenses/` | **Accounts**: the data-entry site. Members ledger per function (Asal / Santha / Vatti / Thogai / Paid), the செலவு (expense) table, and the extra வரவு tables நன்கொடை, ஏலம், முந்தைய இருப்பு. Autosaves. |
+| `functions-dashboard/` | **Dashboard**: Overview, Explore and Admin tabs, charts, compare years, unpaid list, print / PDF, add functions, change passwords. |
+| repo root | Files both sites load: `expense-categories.js`, `income-categories.js`, `function-rules.js`. |
 
-## 1b. Ledger migration (run once, after step 1)
-The entry form was rebuilt to match the paper register (No., Name, Asal, Santha, Vatti, Thogai, Total, Paid) instead of generic credit/expense. In the SQL Editor, run, in order:
-1. `supabase/migration_ledger.sql` — drops the old `transactions` table (only your test rows) and adds `ledger_entries` plus a `member_no` column on `people`.
-2. `supabase/migration_low_confidence.sql` — adds a `low_confidence` flag so the entry site can show uncertain transcribed values in red.
-3. (optional) `supabase/seed_2025_ledger.sql` — pre-fills the "தேவாதி அம்மன் உறுப்பினர்கள் 2025" sheet with a best-effort transcription of the photographed paper register. Read the notes at the top of that file before running — some rows are flagged low-confidence (shown red in the sheet) and a handful of illegible rows were left out entirely for you to add by hand.
+## Sign-in
 
-## 2. Wire up both sites
-Edit these two files and replace the placeholders with the values from step 1 (same values in both files — both sites use the same project):
-- `function-expenses/supabase-config.js`
-- `functions-dashboard/supabase-config.js`
+Both sites sign in through **Supabase Auth**, each with its OWN account and its own password. People only type the
+password; the email is fixed in each `supabase-config.js`.
 
-```js
-const SUPABASE_URL = "https://xxxxxxxx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOi...";
-```
+| Site | Account (email) |
+|---|---|
+| Accounts | `admin@boliammanur.local` |
+| Dashboard | `dashboard@boliammanur.local` |
 
-## 3. Test locally
-Open `function-expenses/index.html` and `functions-dashboard/index.html` directly in a browser. Enter the password, add a function/year, then edit a row in the Ledger Sheet (values save automatically as you type), then refresh the dashboard and confirm it shows up.
+- Create both in Supabase: **Authentication, Users, Add user, Create new user** (tick **Auto Confirm User**).
+- The two sites keep separate sessions, so signing in to one does not sign in to the other.
+- Change either password from the Dashboard: **Admin, Change Dashboard password / Change Accounts page password**.
+  Each needs that account's current password. Nobody has a "forgot password" email (`.local` cannot receive mail);
+  reset through Supabase, Authentication, Users.
+- Turn **off** "Allow new users to sign up" (Authentication, Sign In / Providers), or anyone can register on the project.
+- The database only lets a signed-in user read or write. Both accounts are equal as far as the database is concerned;
+  the separation is in the pages.
 
-## 4. Publish on GitHub Pages
-For each site:
-1. Create a new GitHub repo (e.g. `boliammanur-function-expenses`).
-2. Push that folder's contents to the repo root.
-3. Repo → **Settings → Pages** → Source: deploy from the `main` branch, root folder.
-4. GitHub gives you a URL like `https://yourusername.github.io/boliammanur-function-expenses/`.
+## Database (Supabase)
 
-Repeat for `functions-dashboard/` in its own repo.
+SQL files are in `functions-dashboard/supabase/`. Run in the Supabase **SQL editor**. The current ones are safe to re-run:
 
-## Notes
-- No individual logins — one shared password gates both the entry forms and the "change password" panel on the dashboard.
-- The password protects the UI, not the raw API (see the plan doc for the tradeoff) — fine for a community/family use case.
-- To change the password later, use the "Change Shared Password" panel on the dashboard site (needs the current password).
+- `expense_entries.sql` : the செலவு table.
+- `income_entries.sql` : நன்கொடை / ஏலம் / முந்தைய இருப்பு rows (date, Tamil and English name, phone, amount, note).
+- `drop_old_password_gate.sql` : removes the old shared-password functions. Run it once.
+- `rls_policies.sql` : the live access rules (exported from Supabase), with a plain-language summary at the top.
+- everything else (`add_*`, `migration_*`, `seed_*`, `rename_*`, `schema.sql`) is history that has already been applied.
+  Do not re-run `schema.sql`; it is the original first-day design.
+
+## Rules of the code
+
+- **Cache version.** Every CSS/JS file is loaded as `file.js?v=...`. Bump the version on every change, on every page
+  that loads it. A stale cached script has broken the page before.
+- **Do not rename keys.** `expense-categories.js` keys (stored in `expense_entries.category`) and
+  `income-categories.js` keys (stored in `income_entries.kind`) must never change once data exists; labels can.
+- **Who pays சந்தா** lives only in `function-rules.js`, used by both sites.
+- **முந்தைய இருப்பு** (last year's leftover) counts in வரவு/மீதி only when ONE year is selected on the Dashboard;
+  across several years it would count the same money twice.
+- The Accounts page has protected layout rules: read `function-expenses/HEART_LOGIC.md` before touching its header,
+  sticky stack or table styles.
+
+## Run locally
+
+Open `function-expenses/index.html` or `functions-dashboard/index.html` in a browser. They talk to the real database,
+so sign in with the real passwords.
