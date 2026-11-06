@@ -686,6 +686,13 @@ th { color: var(--muted); font-weight: 600; }
 @media (max-width: 400px) {
   .header-logo-main { height: 80px; }
   .header-logo-container { margin-left: 8px; }
+  /* Phone-width overflow fix (measured, not guessed). The row is logo 80px + 8px margin + 10px gap, leaving the title
+     (vw - 98px). Its longest Tamil word, "போளியம்மனூர்", is about 10.1em wide, so at the fixed 1.8rem (28.8px) it needs
+     291px: it overflows at every width under ~390px (360px: sideways scroll of 15px, logo cut off at the left).
+     Scaling the font with the screen keeps the word at 0.69 x vw, which fits down to ~320px. This is a static size
+     at rest, NOT the scroll-shrink animation (that stays transform:scale on h1, see Heart Logic rule 3).
+     Scoped by :has(.header-logo-main) so members.html's text-only header is untouched. */
+  header:has(.header-logo-main) h1 { font-size: min(1.8rem, 6.8vw); }
 }
 
 /* ---------- Ledger spreadsheet ---------- */
