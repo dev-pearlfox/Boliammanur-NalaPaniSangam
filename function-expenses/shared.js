@@ -7,29 +7,46 @@
 const SAVE_DEBOUNCE_MS = 700;   // inline cell save debounce (ledger sheet)
 const FILTER_DEBOUNCE_MS = 150; // filter re-render debounce (both pages)
 const ROW_SAVE_BLINK_MS = 1200; // "row-saved" CSS class removal
-const ROW_ADDED_BLINK_MS = 1100; // "row-blink" CSS class removal
+const ROW_ADDED_BLINK_MS = 1100; // how long blinkRow() keeps its class (3 x 0.35s + a little)
 const STATUS_OK_CLEAR_MS = 2500; // auto-clear "Saved."/"Added." messages
+
+// Flash a table row 3 times: kind "ok" = green (saved), "error" = red (could not save). The CSS is
+// `row-blink-ok` / `row-blink-error` in style.css; ROW_ADDED_BLINK_MS matches its 3 x 0.35s.
+function blinkRow(tr, kind) {
+  clearTimeout(tr._blinkTimer);
+  tr.classList.remove("row-blink-ok", "row-blink-error");
+  void tr.offsetWidth;   // forces a reflow so the animation restarts if it was already running
+  const cls = `row-blink-${kind}`;
+  tr.classList.add(cls);
+  tr._blinkTimer = setTimeout(() => tr.classList.remove(cls), ROW_ADDED_BLINK_MS);
+}
 
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-// Mobile numbers display as: first 3 chars, space, next 5, space, remaining balance.
+// Mobile numbers display as: first 5 digits, space, the rest (98765 43210). For reading only: the saved value and
+// the box while editing have no spaces.
 function formatMobile(value) {
   const raw = String(value ?? "").replace(/\s+/g, "");
-  if (raw.length <= 3) return raw;
-  const part1 = raw.slice(0, 3);
-  const rest = raw.slice(3);
-  if (rest.length <= 5) return `${part1} ${rest}`;
-  const part2 = rest.slice(0, 5);
-  const part3 = rest.slice(5);
-  return `${part1} ${part2} ${part3}`;
+  return raw.length <= 5 ? raw : `${raw.slice(0, 5)} ${raw.slice(5)}`;
 }
 
 // Mobile number fields only accept digits and "+" as the user types.
 function filterMobileInput(el) {
   const cleaned = el.value.replace(/[^\d+]/g, "");
   if (cleaned !== el.value) el.value = cleaned;
+}
+
+// A saved member mobile must be exactly 10 digits (blank is allowed: the number is optional).
+// Returns null when OK, otherwise the message to show the user.
+const MOBILE_DIGITS = 10;
+function mobileError(value) {
+  const raw = String(value ?? "").replace(/\s+/g, "");
+  const digitsOnly = /^\d+$/.test(raw);
+  if (raw === "" || (digitsOnly && raw.length === MOBILE_DIGITS)) return null;
+  if (!digitsOnly) return `Mobile number must be ${MOBILE_DIGITS} digits, numbers only.`;
+  return `Mobile number must be exactly ${MOBILE_DIGITS} digits (you entered ${raw.length}).`;
 }
 
 // Number-only fields (S.No, Roll No, etc.) only accept digits as the user types.

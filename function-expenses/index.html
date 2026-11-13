@@ -16,7 +16,7 @@
 <link rel="icon" href="logo-emblem-only.png" type="image/png" />
 <link rel="apple-touch-icon" href="logo-emblem-only.png" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="stylesheet" href="style.css?v=20261105t" />
+<link rel="stylesheet" href="style.css?v=20261113j" />
 <link rel="stylesheet" href="expenses.css?v=20261105t" />
 </head>
 <body>
@@ -128,37 +128,6 @@
       <div class="table-wrap sheet-tbody-wrap" id="sheet-tbody-wrap">
       <table class="sheet wide">
         <tbody id="sheet-body"></tbody>
-        <tfoot>
-          <tr id="sheet-new-row">
-            <td><input type="number" id="new-member-no" min="1" placeholder="No." aria-label="New member S.No" disabled /></td>
-            <td><input type="text" id="new-name" placeholder="புதிய பெயரை உள்ளிடவும்..." aria-label="New member Tamil name" /></td>
-            <td><input type="text" id="new-name-en" placeholder="Name" aria-label="New member English name" /></td>
-            <td><input type="tel" id="new-mobile" placeholder="Mobile" inputmode="numeric" pattern="[0-9]*" aria-label="New member mobile number" disabled /></td>
-            <td>
-              <div class="santha-cell">
-                <input type="checkbox" id="new-santha-check" aria-label="Toggle சந்தா paid" disabled />
-                <span class="santha-amount" id="new-santha-amount">0</span>
-              </div>
-            </td>
-            <td><input type="text" id="new-asal" placeholder="0" inputmode="numeric" pattern="[0-9]*" aria-label="அசல் (principal)" disabled /></td>
-            <td><input type="text" id="new-vatti" placeholder="0" inputmode="numeric" pattern="[0-9]*" aria-label="வட்டி (interest)" disabled /></td>
-            <td><input type="text" id="new-thogai" placeholder="0" inputmode="numeric" pattern="[0-9]*" aria-label="தொகை (amount)" disabled /></td>
-            <td class="total-cell">0</td>
-            <td><input type="text" id="new-paid" placeholder="குறிப்பு" aria-label="குறிப்பு (note)" disabled /></td>
-          </tr>
-          <tr id="new-type-row" class="hidden">
-            <td colspan="10">
-              <div class="new-type-picker">
-                <span>This function allows all people-Types — pick one for the new member:</span>
-                <select id="new-type" required>
-                  <option value="">Select Type…</option>
-                  <option value="24Manai">24Manai</option>
-                  <option value="Others">Others</option>
-                </select>
-              </div>
-            </td>
-          </tr>
-        </tfoot>
       </table>
       </div>
     </section>
@@ -184,12 +153,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" defer crossorigin="anonymous"></script>
 <script src="supabase-config.js?v=20261105t" defer></script>
-<script src="shared.js?v=20261105t" defer></script>
+<script src="shared.js?v=20261113d" defer></script>
 <script src="../expense-categories.js?v=20261105t" defer></script>
 <script src="../income-categories.js?v=20261105t" defer></script>
-<script src="../function-rules.js?v=20261105t" defer></script>
+<script src="../function-rules.js?v=20261113a" defer></script>
 <script src="expenses.js?v=20261105t" defer></script>
 <script src="income.js?v=20261105t" defer></script>
-<script src="app.js?v=20261105t" defer></script>
+<script src="app.js?v=20261113a" defer></script>
 </body>
 </html>

@@ -241,6 +241,57 @@ function updateNewMemberLock() {
   $("new-m-type").disabled = masterLocked || !hasName;
 }
 
+// ---------- Cancel editing (the x next to the lock) ----------
+// Cells autosave the moment they lose focus, so "cancel" cannot just drop what is on screen: it writes the old values
+// back. editSnapshot is taken when the page is unlocked; members ADDED during the session are not in it, so they
+// are kept (their own "Added" save is already final).
+const EDITABLE_FIELDS = ["name", "name_en", "mobile", "avoid"];
+let editSnapshot = null;
+const pendingCommits = new Set();   // saves in flight (see commitCell), so cancel can wait for them
+
+function takeEditSnapshot() {
+  editSnapshot = new Map(allPeople.map((p) => [p.id, Object.fromEntries(EDITABLE_FIELDS.map((f) => [f, p[f]]))]));
+}
+
+const sameValue = (field, a, b) => (field === "avoid" ? !!a === !!b : (a ?? "") === (b ?? ""));
+
+// Members that differ from the snapshot, with the fields to write back.
+function changesSinceUnlock() {
+  const changes = [];
+  for (const person of allPeople) {
+    const before = editSnapshot?.get(person.id);
+    if (!before) continue;
+    const revert = {};
+    EDITABLE_FIELDS.forEach((f) => { if (!sameValue(f, person[f], before[f])) revert[f] = before[f]; });
+    if (Object.keys(revert).length) changes.push({ person, revert });
+  }
+  return changes;
+}
+
+async function cancelEditing() {
+  await Promise.allSettled([...pendingCommits]);   // clicking this button blurs the cell, which starts a save
+  const changes = changesSinceUnlock();
+  if (changes.length) {
+    const n = changes.length;
+    if (!window.confirm(`Undo your changes to ${n} member${n === 1 ? "" : "s"} and lock the page?`)) return;
+  }
+  const errors = (await Promise.all(changes.map(async ({ person, revert }) => {
+    const { error } = await client.from("people").update(revert).eq("id", person.id);
+    if (!error) Object.assign(person, revert);
+    return error;
+  }))).filter(Boolean);
+  renderRows();   // redraws from allPeople, which also drops anything typed but not saved
+  if (errors.length) {
+    setStatus(`Could not undo ${errors.length} change${errors.length === 1 ? "" : "s"}: ${errors[0].message}`, true);
+    return;   // still in edit mode so nothing is left half-reverted without the user knowing
+  }
+  ["new-m-name", "new-m-name-en", "new-m-mobile", "new-m-type"].forEach((id) => ($(id).value = ""));
+  setMasterLocked(true);
+  setStatus(changes.length ? "Changes undone." : "Cancelled.", false);
+}
+
+$("master-cancel-btn").addEventListener("click", cancelEditing);
+
 // Master lock — one global 🔒 in the totals-banner is the sole edit
 // gate for the whole page. Unlocking makes every existing cell directly
 // editable (no per-cell click needed), the new-member row usable, and
@@ -249,6 +300,8 @@ function updateNewMemberLock() {
 // Page starts locked on every load so a fresh open never risks a stray
 // tap writing to the DB — the user must explicitly unlock first.
 function setMasterLocked(locked) {
+  if (!locked) takeEditSnapshot();
+  document.body.classList.toggle("editing", !locked);   // grey page + cancel button, see style.css
   // Commit any in-flight edit BEFORE flipping readOnly on it — commitCell
   // bails early on readOnly inputs, so the order matters. Commits are
   // fire-and-forget (input.value is already synced to displayValue
@@ -261,9 +314,9 @@ function setMasterLocked(locked) {
   // Action-preview: the icon shows what CLICKING will do next, not the
   // current state — 🔒 while editing is enabled means "tap to lock",
   // ✏️ while locked means "tap to enable editing".
-  btn.textContent = locked ? "✏️" : "🔒";
-  btn.setAttribute("aria-label", locked ? "Unlock editing" : "Lock editing");
-  btn.setAttribute("title", locked ? "Unlock editing" : "Lock editing");
+  btn.textContent = locked ? "\u270F\uFE0F Edit" : "\u{1F512} Save & Lock";
+  btn.setAttribute("aria-label", locked ? "Unlock editing" : "Save and lock");
+  btn.setAttribute("title", locked ? "Unlock editing" : "Save and lock");
   btn.setAttribute("aria-pressed", locked ? "false" : "true");
   setCellsLocked(locked);
   updateNewMemberLock();
@@ -276,28 +329,40 @@ $("master-lock-btn").addEventListener("click", () => {
 // Start locked on every page load — see setMasterLocked comment.
 setMasterLocked(true);
 
+// Could not save: say why in the status line and flash the add row red.
+function rejectNewMember(message) {
+  setStatus(message, true);
+  blinkRow($("new-member-row"), "error");
+}
+
 async function addNewMember() {
   const name = $("new-m-name").value.trim();
   const nameEn = $("new-m-name-en").value.trim();
-  if (!name && !nameEn) return;
+  if (!name && !nameEn) return;   // an empty row is not an error: a click anywhere lands here too
 
   const dup = allPeople.find((p) => p.name.trim().toLowerCase() === name.toLowerCase());
   if (dup) {
-    setStatus(`"${name}" already exists (S.No. ${dup.member_no ?? "-"}) — scroll up to find them instead of re-adding.`, true);
+    rejectNewMember(`"${name}" already exists (S.No. ${dup.member_no ?? "-"}) — scroll up to find them instead of re-adding.`);
     return;
   }
 
   const type = $("new-m-type").value;
   if (!type) {
-    setStatus("Pick a Type (24Manai/Others) for the new member before saving.", true);
+    rejectNewMember("Pick a Type (24Manai/Others) for the new member before saving.");
     return;
   }
 
   const mobile = $("new-m-mobile").value.trim().replace(/[^\d+]/g, "");
+  const mobileProblem = mobileError(mobile);   // shared.js: exactly 10 digits, or blank
+  if (mobileProblem) {
+    rejectNewMember(mobileProblem);
+    $("new-m-mobile").focus();
+    return;
+  }
 
   const { data: person, error } = await insertPersonRaceSafe(client, { name, name_en: nameEn, mobile, type });
   if (error) {
-    setStatus("Error adding member: " + error.message, true);
+    rejectNewMember("Error adding member: " + error.message);
     return;
   }
 
@@ -308,14 +373,14 @@ async function addNewMember() {
   $("new-m-type").value = "";
   updateNewMemberLock();
   setStatus("Added.", false);
+  blinkRow($("new-member-row"), "ok");   // the add row confirms the save...
   renderRows();
   prefillNewMemberRow();
 
   const savedTr = $("members-body").querySelector(`tr[data-person="${person.id}"]`);
   if (savedTr) {
     savedTr.scrollIntoView({ behavior: "smooth", block: "center" });
-    savedTr.classList.add("row-blink");
-    setTimeout(() => savedTr.classList.remove("row-blink"), ROW_ADDED_BLINK_MS);
+    blinkRow(savedTr, "ok");   // ...and so does the member's new row in the list
   }
 }
 
@@ -412,7 +477,16 @@ function setCellsLocked(locked) {
 // validate", callable from Enter/blur/click-outside without side effects
 // on the visual lock state. Short-circuits on unchanged values to avoid
 // spamming the DB when the user just tabs past unmodified cells.
-async function commitCell(input) {
+// Wrapper that remembers the save while it is running, so cancelEditing() can wait for it.
+function commitCell(input) {
+  const saving = commitCellNow(input);
+  pendingCommits.add(saving);
+  const done = () => pendingCommits.delete(saving);
+  saving.then(done, done);
+  return saving;
+}
+
+async function commitCellNow(input) {
   if (input.readOnly) return;
   const tr = input.closest("tr");
   const personId = tr.dataset.person;
@@ -429,6 +503,13 @@ async function commitCell(input) {
   if (field === "mobile") {
     value = value.replace(/[^\d+]/g, "");
     displayValue = formatMobile(value);
+    // A changed number must be exactly 10 digits. An untouched old number is left alone (no error on tab-through).
+    const problem = value !== (person.mobile ?? "") ? mobileError(value) : null;
+    if (problem) {
+      setStatus(problem, true);
+      input.value = formatMobile(person.mobile);   // put the old number back
+      return;
+    }
   }
 
   if (field === "name") {
@@ -449,7 +530,7 @@ async function commitCell(input) {
 
   // No change → no write. Every unlocked cell would otherwise "commit"
   // on every blur/click-away, even if the user never typed a thing.
-  if (person[field] === value) return;
+  if ((person[field] ?? "") === value) return;   // ?? "": an empty (null) cell left empty is not a change
 
   const { error } = await client.from("people").update({ [field]: value }).eq("id", personId);
   if (error) {
@@ -463,6 +544,14 @@ async function commitCell(input) {
 $("members-body").addEventListener("input", (e) => {
   if (!e.target.classList.contains("cell-input") || e.target.dataset.field !== "mobile") return;
   filterMobileInput(e.target);
+});
+
+// The spaces in a mobile number are for reading only: while a cell is being edited it shows the plain digits, and
+// commitCell() (on leaving the cell) puts the spacing back.
+$("members-body").addEventListener("focusin", (e) => {
+  const input = e.target;
+  if (!input.classList?.contains("cell-input") || input.dataset.field !== "mobile" || input.readOnly) return;
+  input.value = input.value.replace(/\s+/g, "");
 });
 
 $("members-body").addEventListener("change", async (e) => {

@@ -293,7 +293,15 @@ main {
   padding: 6px 10px;
   line-height: 1;
   font-size: 0.95rem;
+  white-space: nowrap;   /* icon + "Edit" / "Lock" stay on one line */
 }
+
+/* Edit mode (members.js adds body.editing while the page is unlocked): the page behind the table turns grey so it is
+   obvious edits are live. The sticky stack paints its own background, so it needs the same grey. The cancel button
+   (x, next to the lock) only exists while editing. */
+body.editing { background: #d4d4d8; }
+body.editing .sticky-top-stack { background: #d4d4d8; }
+body:not(.editing) #master-cancel-btn { display: none; }
 
 /* master-locked = read-only page mode. Cell inputs are set to readonly
    (see setCellsLocked in members.js) so no typing is possible; Avoid
@@ -910,25 +918,15 @@ table.sheet input.uncertain { color: var(--expense); font-weight: 700; }
 
 table.sheet tr.row-saved td { background: rgba(21, 128, 61, 0.15); transition: background 1.2s ease; }
 
-@keyframes row-blink { 0%, 100% { background: transparent; } 50% { background: rgba(21, 128, 61, 0.35); } }
-table.sheet tr.row-blink td { animation: row-blink 0.35s ease-in-out 3; }
-
-table.sheet tfoot td { background: rgba(21, 128, 61, 0.1); }
-table.sheet tfoot td input:disabled { background: transparent; color: var(--muted); opacity: 0.55; cursor: not-allowed; }
-
-.new-type-picker {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 10px 12px;
-  font-size: 0.85rem;
-  color: var(--text);
-}
-.new-type-picker select { width: auto; min-width: 160px; }
-
-#new-member-no { color: #15803d; font-weight: 700; -moz-appearance: textfield; }
-#new-member-no::-webkit-inner-spin-button, #new-member-no::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* Row flash, see blinkRow() in shared.js: green = saved, red = could not save. Only the 50% keyframe is given, so the
+   row eases from its own resting colour to the flash colour and back (no jump to transparent). Inputs are made
+   see-through meanwhile, otherwise their own solid background would hide the colour. */
+@keyframes row-blink-ok { 50% { background: rgba(21, 128, 61, 0.35); } }
+@keyframes row-blink-error { 50% { background: rgba(220, 38, 38, 0.32); } }
+table.sheet tr.row-blink-ok td { animation: row-blink-ok 0.35s ease-in-out 3; }
+table.sheet tr.row-blink-error td { animation: row-blink-error 0.35s ease-in-out 3; }
+table.sheet tr.row-blink-ok td input, table.sheet tr.row-blink-ok td select,
+table.sheet tr.row-blink-error td input, table.sheet tr.row-blink-error td select { background: transparent; }
 
 /* ---------- சந்தா: admin-fixed price, member just checks/unchecks ---------- */
 
@@ -1059,17 +1057,17 @@ table.sheet thead tr.filter-row td {
 }
 
 /* ---------- Members page table widths — HEART LOGIC, do not change without asking ----------
-   S.No. 70px / Roll No. 80px / பெயர் 248px / Name 248px / Mobile Number 200px / Type 130px / Avoid 80px
-   (= 1056px total, matching .members-thead-wrap's own 22px side padding +
+   S.No. 70px / Roll No. 80px / பெயர் 248px / Name 248px / Mobile Number 180px / Type 130px / Avoid 80px
+   (= 1036px total, matching .members-thead-wrap's own 22px side padding +
    1px side border exactly, so the table fills that frame with no leftover
-   gap on either side — the wrap's outer width below is 1056 + 44 + 2 =
-   1102px to fit it.)
+   gap on either side — the wrap's outer width below is 1036 + 44 + 2 =
+   1082px to fit it.)
    Literal fixed pixel widths, identical on desktop/tablet/mobile — the table
    does NOT stretch to fill its card (unlike table.sheet's default). On a
    screen narrower than the table's total width, it scrolls horizontally
    within its own card (table-wrap already supports this), same technique
    used for the main Ledger Sheet on phones — nothing else on the page moves. */
-table.members-table { width: 1056px; margin-top: 0; }
+table.members-table { width: 1036px; margin-top: 0; }
 
 /* The header (column titles + filter inputs) is a separate mini table from
    the data rows, pinned via position:sticky on this WRAPPING div rather than
@@ -1107,13 +1105,13 @@ table.members-table { width: 1056px; margin-top: 0; }
    internal scroll, never real page scroll. Its horizontal scroll position is
    mirrored from the body by members.js so columns still track left/right
    drags on narrow screens.
-   Matches .members-filter-card's own 1058px footprint (1056px table + 2px
+   Matches .members-filter-card's own 1038px footprint (1036px table + 2px
    border, no padding — see the "no container" note on .members-table-card
    below) and centers within .sticky-top-inner the same way — the same
    max-width:1320px/margin:auto/padding container <main> uses, so this is
    structurally guaranteed to line up with .members-table-card below rather
    than computing its own separate width math. On phones it shrinks below
-   1058px (max-width:100% of a narrower .sticky-top-inner), which is what
+   1038px (max-width:100% of a narrower .sticky-top-inner), which is what
    makes the table inside overflow and need the horizontal scroll-sync in
    the first place. */
 .members-thead-wrap {
@@ -1131,7 +1129,7 @@ table.members-table { width: 1056px; margin-top: 0; }
   box-shadow: var(--shadow); /* same shadow every .card on the page uses — box-shadow paints outside the border-box, unaffected by this element's own overflow:hidden */
   contain: layout;
   overflow-anchor: none;
-  width: 1058px; /* 1056px table + 2px border (1px each side) so the table still fits exactly, without the border clipping it */
+  width: 1038px; /* 1036px table + 2px border (1px each side) so the table still fits exactly, without the border clipping it */
   max-width: 100%;
   margin: 22px auto 0; /* top value is breathing room from the pills bar above; closes to 0 once scrolled, just like the pills bar's own margin does */
   transition: margin-top 0.2s ease;
@@ -1182,13 +1180,13 @@ body.is-scrolled .members-thead-wrap { margin-top: 0; }
    .members-table-card). pill-row's own gap widens a bit (see further down)
    for breathing room now that there's no card edge to imply spacing.
 
-   REVERT: restore width:1058px (was matching .members-thead-wrap's 1056px
+   REVERT: restore width:1038px (was matching .members-thead-wrap's 1036px
    table + 2px border) and background:var(--surface); border:1px solid
    var(--border); border-radius:var(--radius); box-shadow:var(--shadow);
    padding:16px 20px (the .card.compact defaults) to go back to the boxed
    look. */
 .members-filter-card {
-  width: 1058px; /* always matches .members-thead-wrap's own width exactly, so the pill row's outer edges line up with the spreadsheet below it — the pill-row itself scrolls internally (see below) if its content doesn't fit at this width, rather than the card growing/shrinking to match content */
+  width: 1038px; /* always matches .members-thead-wrap's own width exactly, so the pill row's outer edges line up with the spreadsheet below it — the pill-row itself scrolls internally (see below) if its content doesn't fit at this width, rather than the card growing/shrinking to match content */
   max-width: 100%; /* of .sticky-top-inner's already-padded content box (see above) */
   margin: 28px auto 0; /* top value replicates <main>'s old header→pills gap, now that this card lives in .sticky-top-stack instead of <main> */
   background: none;
@@ -1230,7 +1228,7 @@ body.is-scrolled .members-thead-wrap { margin-top: 0; }
   display: inline-flex;
   flex-wrap: nowrap;
   max-width: 100%;
-  margin-left: auto; /* centers the visible outline within .members-filter-card, which is now wider (1058px) than the outline itself needs to be */
+  margin-left: auto; /* centers the visible outline within .members-filter-card, which is now wider (1038px) than the outline itself needs to be */
   margin-right: auto;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -1283,12 +1281,27 @@ table.members-table th:nth-child(1), table.members-table td:nth-child(1) { width
 table.members-table th:nth-child(2), table.members-table td:nth-child(2) { width: 80px; }
 table.members-table th:nth-child(3), table.members-table td:nth-child(3) { width: 248px; }
 table.members-table th:nth-child(4), table.members-table td:nth-child(4) { width: 248px; }
-table.members-table th:nth-child(5), table.members-table td:nth-child(5) { width: 200px; }
+table.members-table th:nth-child(5), table.members-table td:nth-child(5) { width: 180px; }
 table.members-table th:nth-child(6), table.members-table td:nth-child(6) { width: 130px; }
 table.members-table th:nth-child(7), table.members-table td:nth-child(7) { width: 80px; }
 table.members-table td:nth-child(2) { text-align: center; }
 table.members-table td:nth-child(6) { text-align: center; }
 table.members-table td:nth-child(7) { text-align: center; }
+/* Mobile column (5th): a fixed "+91" sits in front of the number, so people type only the 10 digits. Display only: the
+   saved value stays the plain 10 digits. Widths are untouched (HEART LOGIC: literal px columns). */
+table.members-table td:nth-child(5) { position: relative; }
+table.members-table td:nth-child(5)::before {
+  content: "+91";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-weight: 600;
+  pointer-events: none;
+}
+/* Inputs are right-aligned by default; left-align so the digits sit right after the +91. */
+table.members-table td:nth-child(5) input { padding-left: 49px; text-align: left; }
 table.members-table thead th:nth-child(3) { font-weight: 800; }
 table.members-table thead th { padding: 4px 3px; }
 

@@ -224,16 +224,17 @@
           <h2>Add New Function</h2>
           <form id="function-form">
             <label>Function name
-              <input type="text" id="function-name" required placeholder="e.g. Annual Function" />
+              <input type="text" id="function-name" list="function-name-options" required autocomplete="off" placeholder="Pick a function or type a new name" />
+              <datalist id="function-name-options"></datalist>   <!-- suggestions filled from FUNCTION_NAMES by admin.js -->
             </label>
             <label>Year
-              <input type="number" id="function-year" required min="2000" max="2100" />
+              <input type="text" id="function-year" list="function-year-options" required autocomplete="off" inputmode="numeric" pattern="20[0-9]{2}" title="A year between 2000 and 2099" placeholder="Pick or type a year" />
+              <datalist id="function-year-options"></datalist>   <!-- this year and next, filled by admin.js -->
             </label>
             <label>People Type
               <select id="function-allowed-type" required>
                 <option value="All">All (everyone)</option>
                 <option value="24Manai">24Manai only</option>
-                <option value="Others">Others only</option>
               </select>
             </label>
             <label>சந்தா Amount (fixed price)
@@ -280,7 +281,7 @@
 <script src="supabase-config.js?v=20261105s" defer></script>
 <script src="../expense-categories.js?v=20261105s" defer></script>
 <script src="../income-categories.js?v=20261105s" defer></script>
-<script src="../function-rules.js?v=20261105s" defer></script>
+<script src="../function-rules.js?v=20261113a" defer></script>
 <script src="core.js?v=20261105s" defer></script>
 <script src="data.js?v=20261105s" defer></script>
 <script src="charts.js?v=20261105s" defer></script>
@@ -289,7 +290,7 @@
 <script src="compare.js?v=20261105s" defer></script>
 <script src="explore.js?v=20261105s" defer></script>
 <script src="unpaid.js?v=20261105s" defer></script>
-<script src="admin.js?v=20261105s" defer></script>
+<script src="admin.js?v=20261113d" defer></script>
 <script src="print.js?v=20261105s" defer></script>
 <script src="app.js?v=20261105s" defer></script>
 </body>

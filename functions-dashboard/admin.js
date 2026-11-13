@@ -1,7 +1,6 @@
 // Section 3: Admin. Add a function, change a function's fixed சந்தா price, change the Dashboard / Accounts passwords, sign out.
 
 function renderAdmin() {
-  if (!$("function-year").value) $("function-year").value = new Date().getFullYear();
   $("functions-list").innerHTML = functionsList
     .slice()
     .sort((a, b) => b.year - a.year || a.name.localeCompare(b.name))
@@ -21,6 +20,13 @@ function renderAdmin() {
 
 // ---------- Add function ----------
 
+// Clicking the year box suggests this year and next (left empty, not pre-filled, so both suggestions show).
+const thisYear = new Date().getFullYear();
+$("function-year-options").innerHTML = [thisYear, thisYear + 1].map((y) => `<option value="${y}"></option>`).join("");
+
+// Clicking the name box suggests the usual functions (FUNCTION_NAMES, function-rules.js); a new name can still be typed.
+$("function-name-options").innerHTML = FUNCTION_NAMES.map((n) => `<option value="${escapeHtml(n)}"></option>`).join("");
+
 $("function-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const submitBtn = e.submitter || $("function-form").querySelector('button[type="submit"]');
@@ -29,12 +35,20 @@ $("function-form").addEventListener("submit", async (e) => {
   const allowedType = $("function-allowed-type").value;
   const santhaAmount = Number($("function-santha-amount").value) || 0;
   if (!name || !year) return;
+  // The same function can only exist once per year (the database enforces it too: add_function_unique.sql).
+  const sameName = (f) => f.name.trim().toLowerCase() === name.toLowerCase();
+  if (functionsList.some((f) => f.year === year && sameName(f))) {
+    setStatus("function-status", `"${name}" already exists for ${year}.`, true);
+    return;
+  }
   submitBtn.disabled = true;
   setStatus("function-status", "Adding...", false);
   try {
     const { error } = await client.from("functions").insert({ name, year, allowed_type: allowedType, santha_amount: santhaAmount });
     if (error) {
-      setStatus("function-status", "Error: " + error.message, true);
+      // 23505 = unique violation: someone else added it a moment ago and our list was stale.
+      const message = error.code === "23505" ? `"${name}" already exists for ${year}.` : "Error: " + error.message;
+      setStatus("function-status", message, true);
       return;
     }
     $("function-form").reset();
