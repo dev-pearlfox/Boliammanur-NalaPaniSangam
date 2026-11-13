@@ -49,6 +49,11 @@ function mobileError(value) {
   return `Mobile number must be exactly ${MOBILE_DIGITS} digits (you entered ${raw.length}).`;
 }
 
+// Money boxes show Indian grouping (12,34,567) while not being edited and plain digits while typing, like the mobile
+// numbers. editMoneyBox on focus, showMoneyBox on leaving; formatMoney / parseMoney live in ../money-format.js.
+function editMoneyBox(el) { el.value = el.value.replace(/,/g, ""); }
+function showMoneyBox(el) { if (el.value.trim() !== "") el.value = formatMoney(parseMoney(el.value)); }
+
 // Number-only fields (S.No, Roll No, etc.) only accept digits as the user types.
 function filterDigitsInput(el) {
   const cleaned = el.value.replace(/[^\d]/g, "");

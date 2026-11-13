@@ -496,7 +496,9 @@ function updateSheetTitle() {
       incomeButtonsHtml() +   // income.js: நன்கொடை, ஏலம், முந்தைய இருப்பு
     `</div>` +
     // செலவு (expense): one button; its table (expenses.js) replaces the members sheet while it is open.
-    expenseButtonHtml();
+    expenseButtonHtml() +
+    // Print / save as PDF: last in the row and pushed to its right end (style.css .print-btn); print.js.
+    (f ? printButtonHtml() : "");
   // Respect the user's collapse toggle across re-renders — updateSheetTitle
   // is called after adding a row / switching function / saving, and used to
   // unconditionally un-hide the sheet, popping it back open behind the
@@ -603,10 +605,10 @@ function renderSheet() {
   const nameEnQ = $("filter-name-en").value.trim().toLowerCase();
   const mobileQ = $("filter-mobile").value.trim().replace(/\s+/g, "").toLowerCase();
   const santhaQ = $("filter-santha").value;
-  const asalQ = $("filter-asal").value.trim();
-  const vattiQ = $("filter-vatti").value.trim();
-  const thogaiQ = $("filter-thogai").value.trim();
-  const totalQ = $("filter-total").value.trim();
+  const asalQ = $("filter-asal").value.replace(/[\s,]/g, "");
+  const vattiQ = $("filter-vatti").value.replace(/[\s,]/g, "");
+  const thogaiQ = $("filter-thogai").value.replace(/[\s,]/g, "");
+  const totalQ = $("filter-total").value.replace(/[\s,]/g, "");
   const paidQ = $("filter-paid").value.trim().toLowerCase();
 
   const visible = rows.filter(({ p, seq, e }) => {
@@ -635,13 +637,13 @@ function renderSheet() {
         <td>
           <div class="santha-cell">
             <input type="checkbox" class="f-santha-check" data-amount="${santhaAmount}" ${e.santha_checked ? "checked" : ""} />
-            <span class="santha-amount ${e.santha_checked ? "" : "faded"}">${santhaAmount.toFixed(0)}</span>
+            <span class="santha-amount ${e.santha_checked ? "" : "faded"}">${formatMoney(santhaAmount)}</span>
           </div>
         </td>
-        <td><input type="number" step="0.01" min="0" class="f-asal ${cls}" value="${Number(e.asal)}" /></td>
-        <td><input type="number" step="0.01" min="0" class="f-vatti ${cls}" value="${Number(e.vatti)}" /></td>
-        <td><input type="number" step="0.01" min="0" class="f-thogai ${cls}" value="${Number(e.thogai)}" /></td>
-        <td class="total-cell">${Number(e.total).toFixed(0)}</td>
+        <td><input type="text" inputmode="numeric" pattern="[0-9]*" class="f-asal ${cls}" value="${formatMoney(e.asal)}" /></td>
+        <td><input type="text" inputmode="numeric" pattern="[0-9]*" class="f-vatti ${cls}" value="${formatMoney(e.vatti)}" /></td>
+        <td><input type="text" inputmode="numeric" pattern="[0-9]*" class="f-thogai ${cls}" value="${formatMoney(e.thogai)}" /></td>
+        <td class="total-cell">${formatMoney(e.total)}</td>
         <td><input type="text" class="f-paid" value="${escapeHtml(e.paid || "")}" /></td>
       </tr>`;
     })
@@ -662,13 +664,11 @@ function updateTotalsBanner(rows) {
     },
     { santha: 0, asal: 0, vatti: 0, thogai: 0, total: 0 }
   );
-  $("totals-santha").textContent = sums.santha.toFixed(0);
-  $("totals-asal").textContent = sums.asal.toFixed(0);
-  $("totals-vatti").textContent = sums.vatti.toFixed(0);
-  $("totals-thogai").textContent = sums.thogai.toFixed(0);
-  $("totals-total").textContent = sums.total.toFixed(0);
-  const grand = sums.santha + sums.asal + sums.vatti + sums.thogai + sums.total;
-  $("totals-grand").textContent = grand.toFixed(0);
+  $("totals-santha").textContent = formatMoney(sums.santha);
+  $("totals-asal").textContent = formatMoney(sums.asal);
+  $("totals-vatti").textContent = formatMoney(sums.vatti);
+  $("totals-thogai").textContent = formatMoney(sums.thogai);
+  $("totals-total").textContent = formatMoney(sums.total);
   alignTotalsBanner();
 }
 
@@ -754,14 +754,17 @@ const debouncedRequestRenderSheet = debounce(requestRenderSheet, FILTER_DEBOUNCE
 // to debounce or flush (its transition is intentional, not typing).
 $("filter-santha").addEventListener("change", renderSheet);
 
+// The three amount boxes (அசல் / வட்டி / தொகை) take whole numbers only (filterWholeNumber, money-format.js).
+const AMOUNT_INPUTS = ".f-asal, .f-vatti, .f-thogai";
+
 function rowValues(tr) {
   const santhaCheck = tr.querySelector(".f-santha-check");
   return {
-    asal: parseFloat(tr.querySelector(".f-asal").value) || 0,
+    asal: parseMoney(tr.querySelector(".f-asal").value),
     santhaChecked: santhaCheck.checked,
     santha: santhaCheck.checked ? Number(santhaCheck.dataset.amount) : 0,
-    vatti: parseFloat(tr.querySelector(".f-vatti").value) || 0,
-    thogai: parseFloat(tr.querySelector(".f-thogai").value) || 0,
+    vatti: parseMoney(tr.querySelector(".f-vatti").value),
+    thogai: parseMoney(tr.querySelector(".f-thogai").value),
     paid: tr.querySelector(".f-paid").value.trim(),
   };
 }
@@ -770,7 +773,7 @@ async function saveRow(personId, tr) {
   const funcId = selectedFunctionId;
   const v = rowValues(tr);
   const total = v.asal + v.santha + v.vatti + v.thogai;
-  tr.querySelector(".total-cell").textContent = total.toFixed(0);
+  tr.querySelector(".total-cell").textContent = formatMoney(total);
 
   const payload = {
     function_id: funcId,
@@ -821,27 +824,62 @@ $("sheet-body").addEventListener("input", (e) => {
   const tr = e.target.closest("tr");
   if (!tr) return;
   const personId = tr.dataset.person;
-  if (e.target.classList.contains("f-asal") || e.target.classList.contains("f-vatti") || e.target.classList.contains("f-thogai")) {
+  if (e.target.matches(AMOUNT_INPUTS)) {
+    filterWholeNumber(e.target);
     const v = rowValues(tr);
-    tr.querySelector(".total-cell").textContent = (v.asal + v.santha + v.vatti + v.thogai).toFixed(0);
+    tr.querySelector(".total-cell").textContent = formatMoney(v.asal + v.santha + v.vatti + v.thogai);
   }
   scheduleSave(personId, tr, false);
 });
 
+// Same rules as the Members page: save plain digits (the spacing is display only), a changed number must be exactly
+// 10 digits (a bad edit puts the old number back and flashes the row red), an untouched number is left alone.
 async function commitMobile(input) {
   const tr = input.closest("tr");
   const personId = tr.dataset.person;
-  const mobile = formatMobile(input.value.trim());
-  input.value = mobile;
+  const p = people.find((p) => p.id === personId);
+  const mobile = input.value.replace(/[^\d+]/g, "");
+  const old = String(p?.mobile ?? "").replace(/\s+/g, "");
+  if (mobile === old) {
+    input.value = formatMobile(mobile);
+    return;
+  }
+  const problem = mobileError(mobile);
+  if (problem) {
+    setStatus("sheet-status", problem, true);
+    input.value = formatMobile(old);
+    blinkRow(tr, "error");
+    return;
+  }
+  input.value = formatMobile(mobile);
   const { error } = await client.from("people").update({ mobile }).eq("id", personId);
   if (error) {
     setStatus("sheet-status", "Error saving mobile number: " + error.message, true);
+    input.value = formatMobile(old);
+    blinkRow(tr, "error");
     return;
   }
-  const p = people.find((p) => p.id === personId);
   if (p) p.mobile = mobile;
   setStatus("sheet-status", "", false);
 }
+
+// On focus: a mobile number shows plain digits (its spaces are for reading only), and an amount that is just "0" is
+// cleared so the user can type straight away instead of deleting the 0 first.
+$("sheet-body").addEventListener("focusin", (e) => {
+  const input = e.target;
+  if (input.classList?.contains("f-mobile")) input.value = input.value.replace(/\s+/g, "");
+  else if (input.matches?.(AMOUNT_INPUTS)) {
+    editMoneyBox(input);
+    if (input.value === "0") input.value = "";
+  }
+});
+
+// On leaving an amount box that was left empty, show the 0 again (an empty box already counts as 0, see rowValues).
+$("sheet-body").addEventListener("focusout", (e) => {
+  if (!e.target.matches?.(AMOUNT_INPUTS)) return;
+  if (e.target.value === "") e.target.value = "0";
+  showMoneyBox(e.target);
+});
 
 async function commitNameEn(input) {
   const tr = input.closest("tr");
@@ -867,7 +905,7 @@ $("sheet-body").addEventListener("change", (e) => {
     const span = tr.querySelector(".santha-amount");
     span.classList.toggle("faded", !e.target.checked);
     const v = rowValues(tr);
-    tr.querySelector(".total-cell").textContent = (v.asal + v.santha + v.vatti + v.thogai).toFixed(0);
+    tr.querySelector(".total-cell").textContent = formatMoney(v.asal + v.santha + v.vatti + v.thogai);
     scheduleSave(tr.dataset.person, tr, true);
   }
 });

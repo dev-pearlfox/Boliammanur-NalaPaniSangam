@@ -1,5 +1,21 @@
 // Section 3: Admin. Add a function, change a function's fixed சந்தா price, change the Dashboard / Accounts passwords, sign out.
 
+// Rows whose சந்தா amount was just saved show a "Saved" label for 5 seconds. Kept here (not on the button) because
+// refreshAll() redraws the whole list after a save, which would wipe anything added to the old button.
+const SAVED_LABEL_MS = 5000;
+const recentlySaved = new Set();
+const savedLabelHtml = '<span class="saved-label" role="status">\u2713 Saved</span>';
+
+function markSaved(functionId) {
+  recentlySaved.add(functionId);
+  const cell = document.querySelector(`#functions-list tr[data-function="${functionId}"] .santha-amount-cell`);
+  if (cell && !cell.querySelector(".saved-label")) cell.insertAdjacentHTML("beforeend", savedLabelHtml);
+  setTimeout(() => {
+    recentlySaved.delete(functionId);
+    document.querySelector(`#functions-list tr[data-function="${functionId}"] .saved-label`)?.remove();
+  }, SAVED_LABEL_MS);
+}
+
 function renderAdmin() {
   $("functions-list").innerHTML = functionsList
     .slice()
@@ -10,8 +26,9 @@ function renderAdmin() {
         <td>${f.year}</td>
         <td>${escapeHtml(f.allowed_type || "All")}</td>
         <td class="santha-amount-cell">
-          <input type="number" class="santha-amount-input" min="0" step="1" value="${Number(f.santha_amount ?? 1000)}" aria-label="சந்தா amount for ${escapeHtml(functionLabel(f))}" />
+          <input type="text" inputmode="numeric" class="santha-amount-input" value="${Number(f.santha_amount ?? 1000)}" aria-label="சந்தா amount for ${escapeHtml(functionLabel(f))}" />
           <button type="button" class="secondary santha-amount-save">Save</button>
+          ${recentlySaved.has(f.id) ? savedLabelHtml : ""}
         </td>
       </tr>`
     )
@@ -63,6 +80,12 @@ $("function-form").addEventListener("submit", async (e) => {
 // Updates the fixed price, then cascades the new amount to every entry already checked "paid" for that function,
 // so stored totals stay consistent with what the Accounts page now shows.
 
+// Whole rupees only in both price boxes (the "add a function" form and each row's box).
+$("function-santha-amount").addEventListener("input", (e) => filterWholeNumber(e.target));
+$("functions-list").addEventListener("input", (e) => {
+  if (e.target.matches(".santha-amount-input")) filterWholeNumber(e.target);
+});
+
 $("functions-list").addEventListener("click", async (e) => {
   const btn = e.target.closest(".santha-amount-save");
   if (!btn) return;
@@ -70,6 +93,18 @@ $("functions-list").addEventListener("click", async (e) => {
   const functionId = tr.dataset.function;
   const newAmount = Number(tr.querySelector(".santha-amount-input").value) || 0;
 
+  // Immediate reaction: the button greys out and says "Saving..." until the whole save (and list refresh) is done.
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+  try {
+    await saveSanthaAmount(functionId, newAmount);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Save";   // (the list is usually redrawn by then; this covers the error paths)
+  }
+});
+
+async function saveSanthaAmount(functionId, newAmount) {
   const { error: fnError } = await client.from("functions").update({ santha_amount: newAmount }).eq("id", functionId);
   if (fnError) {
     setStatus("function-status", "Error updating amount: " + fnError.message, true);
@@ -92,7 +127,8 @@ $("functions-list").addEventListener("click", async (e) => {
 
   setStatus("function-status", `சந்தா amount updated to ${newAmount} (${checkedRows.length} existing entries recalculated).`, false);
   await refreshAll();
-});
+  markSaved(functionId);   // after the redraw, so the label lands on the new row
+}
 
 // ---------- Change passwords ----------
 // There are TWO logins: the Dashboard's and the Accounts page's. Each gets its own clearly named card, built from
@@ -163,7 +199,10 @@ PASSWORD_CARDS.forEach((c) => {
   });
 });
 
-$("signout-btn").addEventListener("click", async () => {
-  await client.auth.signOut();
-  location.reload();
-});
+// Two sign-out buttons (the Admin card and the bottom banner) share one handler.
+for (const id of ["signout-btn", "banner-signout-btn"]) {
+  $(id).addEventListener("click", async () => {
+    await client.auth.signOut();
+    location.reload();
+  });
+}

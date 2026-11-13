@@ -19,7 +19,7 @@ function printSummary(funcIds, title) {
     .join("");
 
   $("print-summary").innerHTML = `
-    <h1>Boliammanur Nalapani Sangam</h1>
+    <h1>Boliammanur</h1>
     <h2>Accounts summary</h2>
     <p class="print-meta">${escapeHtml(title)} &middot; printed ${new Date().toLocaleDateString()}</p>
     <table class="print-totals"><thead><tr><th>வரவு (income)</th><th>செலவு (expense)</th><th>மீதி (balance)</th></tr></thead>

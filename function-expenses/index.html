@@ -4,19 +4,19 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="போளியம்மனூர் திருப்பணி சங்கம் - Functions List and expenses ledger for Boliammanur Nalapani Sangam." />
+<meta name="description" content="போளியம்மனூர் - Functions List and expenses ledger for Boliammanur." />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="theme-color" content="#8b1e1e" />
 <meta property="og:type" content="website" />
-<meta property="og:title" content="போளியம்மனூர் திருப்பணி சங்கம் - Functions" />
-<meta property="og:description" content="Accounts ledger for Boliammanur Nalapani Sangam." />
+<meta property="og:title" content="போளியம்மனூர் - Functions" />
+<meta property="og:description" content="Accounts ledger for Boliammanur." />
 <meta property="og:image" content="https://boliammanur.pearlfox.io/function-expenses/logo-emblem-only.png" />
 <meta property="og:url" content="https://boliammanur.pearlfox.io/function-expenses/" />
-<title>போளியம்மனூர் திருப்பணி சங்கம்</title>
+<title>போளியம்மனூர்</title>
 <link rel="icon" href="logo-emblem-only.png" type="image/png" />
 <link rel="apple-touch-icon" href="logo-emblem-only.png" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="stylesheet" href="style.css?v=20261113j" />
+<link rel="stylesheet" href="style.css?v=20261113s" />
 <link rel="stylesheet" href="expenses.css?v=20261105t" />
 </head>
 <body>
@@ -29,7 +29,7 @@
 
 <div id="gate">
   <div class="card">
-    <img src="logo-thirupani-sangam.png" alt="போளியம்மனூர் திருப்பணி சங்கம்" class="gate-logo" width="512" height="512" fetchpriority="high" />
+    <img src="logo-boliammanur.png" alt="போளியம்மனூர்" class="gate-logo" width="512" height="410" fetchpriority="high" />
     <p class="gate-subtitle">Functions List</p>
     <form id="gate-form">
       <label>Password
@@ -44,7 +44,7 @@
 <div id="app" class="hidden">
   <div class="sticky-top-stack">
     <header>
-      <h1><span class="header-logo-container"><img src="logo-emblem-only.png" alt="" role="presentation" class="header-logo-main" width="128" height="128" /></span><span class="header-title-text">போளியம்மனூர் திருப்பணி சங்கம்</span></h1>
+      <h1><span class="header-logo-container"><img src="logo-emblem-only.png" alt="" role="presentation" class="header-logo-main" width="128" height="128" /></span><span class="header-title-text">போளியம்மனூர்</span></h1>
     </header>
 
     <div class="sticky-top-inner">
@@ -145,20 +145,25 @@
       <div class="totals-col" data-col="6"><span class="totals-value" id="totals-asal">0</span></div>
       <div class="totals-col" data-col="7"><span class="totals-value" id="totals-vatti">0</span></div>
       <div class="totals-col" data-col="8"><span class="totals-value" id="totals-thogai">0</span></div>
-      <div class="totals-col" data-col="9"><span class="totals-value totals-grand" id="totals-total">0</span></div>
-      <div class="totals-col totals-col-auto" data-col="10"><span class="totals-value totals-grand totals-shine">Grand Total = <span id="totals-grand">0</span></span></div>
+      <div class="totals-col totals-col-grand" data-col="9"><span class="totals-value totals-grand totals-shine">Grand Total = <span id="totals-total">0</span></span></div>
     </div>
   </div>
+
 </div>
+
+<div id="print-sheet"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.min.js" integrity="sha384-JBR+x8blGwjDRO63aHCGiZMD4VNiTR4ZUGA+N6ZKLf3zNt1fK8IBpcgPaMrxqWBp" defer crossorigin="anonymous"></script>
 <script src="supabase-config.js?v=20261105t" defer></script>
-<script src="shared.js?v=20261113d" defer></script>
+<script src="shared.js?v=20261113f" defer></script>
+<script src="../money-format.js?v=20261113b" defer></script>
 <script src="../expense-categories.js?v=20261105t" defer></script>
 <script src="../income-categories.js?v=20261105t" defer></script>
 <script src="../function-rules.js?v=20261113a" defer></script>
-<script src="expenses.js?v=20261105t" defer></script>
-<script src="income.js?v=20261105t" defer></script>
-<script src="app.js?v=20261113a" defer></script>
+<script src="expenses.js?v=20261113b" defer></script>
+<script src="income.js?v=20261113b" defer></script>
+<script src="print-table.js?v=20261113b" defer></script>
+<script src="print.js?v=20261113d" defer></script>
+<script src="app.js?v=20261113h" defer></script>
 </body>
 </html>

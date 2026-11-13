@@ -55,7 +55,7 @@ function expenseTotal() {
 }
 
 function renderExpenseTotal() {
-  document.getElementById("expense-total").textContent = expenseTotal().toFixed(0);
+  document.getElementById("expense-total").textContent = formatMoney(expenseTotal());
 }
 
 function renderExpenses() {
@@ -64,7 +64,7 @@ function renderExpenses() {
     return `<tr data-category="${h.key}">
       <td>${i + 1}</td>
       <td>${h.label}</td>
-      <td><input type="number" step="0.01" min="0" class="f-expense-amount" value="${r.amount}" /></td>
+      <td><input type="text" inputmode="numeric" class="f-expense-amount" value="${formatMoney(r.amount)}" /></td>
       <td><input type="text" class="f-expense-note" value="${escapeHtml(r.note)}" /></td>
     </tr>`;
   }).join("");
@@ -87,8 +87,9 @@ document.getElementById("expense-body").addEventListener("input", (e) => {
   const tr = e.target.closest("tr");
   if (!tr || !selectedFunctionId) return;
   const key = tr.dataset.category;
+  if (e.target.matches(".f-expense-amount")) filterWholeNumber(e.target);
   expenseRows[key] = {
-    amount: parseFloat(tr.querySelector(".f-expense-amount").value) || 0,
+    amount: parseMoney(tr.querySelector(".f-expense-amount").value),
     note: tr.querySelector(".f-expense-note").value.trim(),
   };
   renderExpenseTotal();
@@ -96,6 +97,10 @@ document.getElementById("expense-body").addEventListener("input", (e) => {
   clearTimeout(expenseSaveTimers[key]);
   expenseSaveTimers[key] = setTimeout(() => { delete expenseSaveTimers[key]; saveExpense(key, funcId); }, SAVE_DEBOUNCE_MS);
 });
+
+// Amount boxes: plain digits while typing, Indian grouping when you leave (see shared.js).
+document.getElementById("expense-body").addEventListener("focusin", (e) => { if (e.target.matches(".f-expense-amount")) editMoneyBox(e.target); });
+document.getElementById("expense-body").addEventListener("focusout", (e) => { if (e.target.matches(".f-expense-amount")) showMoneyBox(e.target); });
 
 document.getElementById("sheet-title").addEventListener("click", (e) => {
   if (e.target.closest("#expense-btn")) setExpenseOpen(!expenseOpen);

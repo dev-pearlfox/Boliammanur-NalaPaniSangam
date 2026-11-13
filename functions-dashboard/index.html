@@ -4,19 +4,19 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="robots" content="noindex, nofollow">
-<meta name="description" content="Income (வரவு), expenses (செலவு) and balance for Boliammanur Nalapani Sangam, overall and by year and function." />
+<meta name="description" content="Income (வரவு), expenses (செலவு) and balance for Boliammanur, overall and by year and function." />
 <meta name="referrer" content="strict-origin-when-cross-origin" />
 <meta name="theme-color" content="#8b1e1e" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Boliammanur Functions Dashboard" />
-<meta property="og:description" content="Income (வரவு), expenses (செலவு) and balance for Boliammanur Nalapani Sangam, overall and by year and function." />
+<meta property="og:description" content="Income (வரவு), expenses (செலவு) and balance for Boliammanur, overall and by year and function." />
 <meta property="og:image" content="https://boliammanur.pearlfox.io/functions-dashboard/logo.png" />
 <meta property="og:url" content="https://boliammanur.pearlfox.io/functions-dashboard/" />
 <title>Boliammanur Functions Dashboard</title>
 <link rel="icon" href="logo.png" type="image/png" />
 <link rel="apple-touch-icon" href="logo.png" />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link rel="stylesheet" href="style.css?v=20261105s" />
+<link rel="stylesheet" href="style.css?v=20261113f" />
 </head>
 <body>
 
@@ -238,7 +238,7 @@
               </select>
             </label>
             <label>சந்தா Amount (fixed price)
-              <input type="number" id="function-santha-amount" required min="0" step="1" value="1000" />
+              <input type="text" inputmode="numeric" id="function-santha-amount" required value="1000" />
             </label>
             <button type="submit">Add Function</button>
             <p class="status" id="function-status" role="status" aria-live="polite"></p>
@@ -271,6 +271,7 @@
   <!-- Bottom banner, like the Accounts page's. Fixed to the bottom of the screen; the buttons sit in the middle. -->
   <div class="bottom-banner">
     <a class="banner-btn" href="../function-expenses/index.html">&larr; Accounts</a>
+    <button type="button" class="banner-btn" id="banner-signout-btn" aria-label="Sign out of Dashboard">Logout</button>
   </div>
 
   <div id="print-summary" aria-hidden="true"></div>
@@ -282,7 +283,8 @@
 <script src="../expense-categories.js?v=20261105s" defer></script>
 <script src="../income-categories.js?v=20261105s" defer></script>
 <script src="../function-rules.js?v=20261113a" defer></script>
-<script src="core.js?v=20261105s" defer></script>
+<script src="../money-format.js?v=20261113b" defer></script>
+<script src="core.js?v=20261113a" defer></script>
 <script src="data.js?v=20261105s" defer></script>
 <script src="charts.js?v=20261105s" defer></script>
 <script src="widgets.js?v=20261105s" defer></script>
@@ -290,8 +292,8 @@
 <script src="compare.js?v=20261105s" defer></script>
 <script src="explore.js?v=20261105s" defer></script>
 <script src="unpaid.js?v=20261105s" defer></script>
-<script src="admin.js?v=20261113d" defer></script>
-<script src="print.js?v=20261105s" defer></script>
+<script src="admin.js?v=20261113g" defer></script>
+<script src="print.js?v=20261113a" defer></script>
 <script src="app.js?v=20261105s" defer></script>
 </body>
 </html>

@@ -20,5 +20,5 @@ function escapeHtml(str) {
 }
 
 function money(n) {
-  return Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return formatMoney(n);   // ../money-format.js: Indian grouping, the same as the Accounts page
 }

@@ -65,6 +65,7 @@ header h1 { margin: 0 0 4px; font-size: 1.5rem; font-weight: 800; color: #047857
 }
 .banner-btn { padding: 6px 16px; border-radius: 999px; background: rgba(255,255,255,0.22); border: 1px solid rgba(255,255,255,0.55); color: #fff; font-size: 0.88rem; font-weight: 700; text-decoration: none; }
 .banner-btn:hover { background: rgba(255,255,255,0.34); }
+button.banner-btn { font-family: inherit; cursor: pointer; }   /* the Logout button: same look as the <a> next to it */
 @media (max-width: 600px) { .banner-btn { font-size: 0.75rem; padding: 6px 12px; } }
 .header-logo { height: 2.2em; width: auto; flex-shrink: 0; margin: -0.45em 0; }
 header p { margin: 0; color: var(--muted); font-size: 0.9rem; }
@@ -134,7 +135,11 @@ th { color: var(--muted); font-weight: 600; }
 
 .santha-amount-cell { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
 .santha-amount-input { width: 80px; min-height: 34px; padding: 6px 8px; }
-.santha-amount-save { padding: 6px 10px; min-height: 34px; font-size: 0.82rem; }
+.santha-amount-save { padding: 6px 10px; min-height: 34px; font-size: 0.82rem; transition: transform 0.08s ease, opacity 0.15s ease; }
+.santha-amount-save:active:not(:disabled) { transform: scale(0.93); }   /* visible "pressed" reaction */
+.santha-amount-save:disabled { opacity: 0.6; cursor: progress; }
+.saved-label { color: var(--accent-2); font-weight: 700; font-size: 0.85rem; animation: saved-pop 0.25s ease; }
+@keyframes saved-pop { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: none; } }
 
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
 .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px; text-align: center; }

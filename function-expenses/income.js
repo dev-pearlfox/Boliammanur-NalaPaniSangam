@@ -20,7 +20,7 @@ const FIELD_TYPES = {
   name:   { type: "text",   db: "name",        read: (v) => v.trim(),               fromDb: (v) => v,                  toDb: (v) => v },
   nameEn: { type: "text",   db: "name_en",     read: (v) => v.trim(),               fromDb: (v) => v,                  toDb: (v) => v },
   phone:  { type: "text",   db: "phone",       read: (v) => v.trim(),               fromDb: (v) => v,                  toDb: (v) => v, mode: "numeric" },
-  amount: { type: "number", db: "amount",      read: (v) => parseFloat(v) || 0,     fromDb: (v) => Number(v),          toDb: (v) => v },
+  amount: { type: "text",   db: "amount",      read: parseMoney,                   fromDb: (v) => Number(v),          toDb: (v) => v, mode: "numeric" },
   note:   { type: "text",   db: "note",        read: (v) => v.trim(),               fromDb: (v) => v || "",            toDb: (v) => v },
 };
 const INCOME_FIELDS = Object.keys(FIELD_TYPES);
@@ -79,13 +79,13 @@ async function loadIncome() {
 
 function renderIncomeTotal() {
   const total = incomeRows.reduce((sum, r) => sum + (r.amount || 0), 0);
-  document.getElementById("income-total").textContent = total.toFixed(0);
+  document.getElementById("income-total").textContent = formatMoney(total);
 }
 
 function incomeCell(col, row) {
   const t = FIELD_TYPES[col.field];
-  const value = col.field === "amount" ? (row.amount || "") : row[col.field];   // an empty amount shows blank, not 0
-  const extra = col.field === "amount" ? ' step="0.01" min="0"' : t.mode ? ` inputmode="${t.mode}"` : "";
+  const value = col.field === "amount" ? (row.amount ? formatMoney(row.amount) : "") : row[col.field];   // an empty amount shows blank, not 0
+  const extra = t.mode ? ` inputmode="${t.mode}"` : "";
   const placeholder = col.placeholder ? ` placeholder="${escapeHtml(col.placeholder)}"` : "";
   return `<td class="ic-${col.field}"><input type="${t.type}" class="f-income" data-field="${col.field}" value="${escapeHtml(String(value))}"${extra}${placeholder} /></td>`;
 }
@@ -135,6 +135,7 @@ document.getElementById("income-body").addEventListener("input", (e) => {
   const row = input && incomeRows.find((r) => r.id === input.closest("tr").dataset.id);
   if (!row || !selectedFunctionId) return;
   if (input.dataset.field === "phone") filterMobileInput(input);   // shared.js: digits and "+" only
+  if (input.dataset.field === "amount") filterWholeNumber(input);   // whole rupees only
   row[input.dataset.field] = FIELD_TYPES[input.dataset.field].read(input.value);
   renderIncomeTotal();
   const funcId = selectedFunctionId;   // captured now: the save still goes to this function if the user switches
@@ -150,6 +151,10 @@ document.getElementById("income-body").addEventListener("change", (e) => {
   input.value = formatMobile(input.value);
   input.dispatchEvent(new Event("input", { bubbles: true }));
 });
+
+// The amount box: plain digits while typing, Indian grouping when you leave (see shared.js).
+document.getElementById("income-body").addEventListener("focusin", (e) => { if (e.target.dataset?.field === "amount") editMoneyBox(e.target); });
+document.getElementById("income-body").addEventListener("focusout", (e) => { if (e.target.dataset?.field === "amount") showMoneyBox(e.target); });
 
 document.getElementById("income-body").addEventListener("click", async (e) => {
   if (!e.target.closest(".income-del")) return;
