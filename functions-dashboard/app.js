@@ -7,6 +7,16 @@
 // never share a sign-in. The database only lets a signed-in user read anything, which is why the old password-only
 // gate (which never signed in) could not see any data.
 
+// The password is asked again when the Dashboard loads more than 5 minutes after it was last typed. The time of the
+// last password entry is kept next to the session; a load with no stamp (or a stamp from the future) counts as expired.
+// An already-open tab is never locked mid-use: the rule is only checked when the page loads.
+const UNLOCK_STAMP_KEY = "boliammanur-dashboard-unlocked-at";
+const UNLOCK_WINDOW_MS = 5 * 60 * 1000;
+function typedPasswordRecently() {
+  const age = Date.now() - Number(localStorage.getItem(UNLOCK_STAMP_KEY));
+  return age >= 0 && age <= UNLOCK_WINDOW_MS;
+}
+
 $("gate-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   setStatus("gate-status", "Signing in...", false);
@@ -15,6 +25,7 @@ $("gate-form").addEventListener("submit", async (e) => {
     setStatus("gate-status", error.message || "Sign-in failed.", true);
     return;
   }
+  localStorage.setItem(UNLOCK_STAMP_KEY, String(Date.now()));
   unlockApp();
 });
 
@@ -30,10 +41,14 @@ function unlockApp() {
 }
 
 client.auth.getSession().then(({ data }) => {
-  if (data.session) unlockApp();
+  if (!data.session) return;
+  if (typedPasswordRecently()) unlockApp();
+  else client.auth.signOut({ scope: "local" });   // too long ago: forget this browser's sign-in, the gate comes back on reload
 });
 client.auth.onAuthStateChange((event) => {
-  if (event === "SIGNED_OUT") location.reload();
+  if (event !== "SIGNED_OUT") return;
+  localStorage.removeItem(UNLOCK_STAMP_KEY);
+  location.reload();
 });
 
 // ---------- Sections ----------
